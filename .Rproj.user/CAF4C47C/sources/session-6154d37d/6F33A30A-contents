@@ -11,15 +11,16 @@ btc_avg_fees <- read.csv("BTC_Average Transaction Fees_Bitcoin.csv", sep=",", he
 btc_days_halving <- read.csv("days_to_halving.csv", sep=",", header = TRUE)
 
 # BTC PRICE
-start_date <- as.Date("2014-09-17") # 2014-09-17
+start_date <- as.Date("2010-07-17") # 2010-07-17
 end_date <- as.Date("2023-11-09") # 2023-11-09
 
 btc_price$DateTime <- as.Date(substr(btc_price$DateTime, 1, 10))
 filtered_btc_price <- subset(btc_price, DateTime >= start_date & DateTime <= end_date) # price
 filtered_btc_price$log_Price <- log(filtered_btc_price$Price) # log price
-date <- as.Date(substr(filtered_btc_price$DateTime, 1, 10))
 
-ggplot(filtered_btc_price, aes(x = date, y = filtered_btc_price$log_Price)) +
+date_range <- as.Date(substr(filtered_btc_price$DateTime, 1, 10))
+
+ggplot(filtered_btc_price, aes(x = date_range, y = filtered_btc_price$log_Price)) +
   geom_line(color = "orange", size = 1) +
   labs(x = "Date", y = "Price Bitcoin", title = "Bitcoin price over time")
 
