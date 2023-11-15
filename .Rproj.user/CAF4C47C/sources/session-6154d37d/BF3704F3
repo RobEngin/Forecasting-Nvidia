@@ -1,12 +1,12 @@
 {
-    "id": "871F51F0",
+    "id": "BF3704F3",
     "path": null,
     "project_path": null,
     "type": "r_dataframe",
     "hash": "0",
     "contents": "",
     "dirty": false,
-    "created": 1700042571761.0,
+    "created": 1700057372290.0,
     "source_on_save": false,
     "relative_order": 2,
     "properties": {
@@ -15,10 +15,10 @@
         "totalObservations": 2298,
         "displayedObservations": 2298,
         "variables": 2,
-        "cacheKey": "F1D269EC",
+        "cacheKey": "7D45D31A",
         "object": "btc_price",
         "environment": "",
-        "contentUrl": "grid_resource/gridviewer.html?env=&obj=btc_price&cache_key=F1D269EC&max_cols=50",
+        "contentUrl": "grid_resource/gridviewer.html?env=&obj=btc_price&cache_key=7D45D31A&max_cols=50",
         "preview": 0,
         "source_window_id": "",
         "Source": "Source"
@@ -28,7 +28,7 @@
     "encoding": "",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1700042571761,
+    "last_content_update": 1700057372290,
     "read_only": false,
     "read_only_alternatives": []
 }
