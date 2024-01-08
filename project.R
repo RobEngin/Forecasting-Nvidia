@@ -129,3 +129,41 @@ acf(dataset$price)
 mat <- cor(dataset)
 
 corrplot(mat, method = "color", addCoef.col = "black")
+
+###DIFFERENTIATION##
+
+# Calcola le differenze
+dataset$price_diff <- c(NA, diff(dataset$price))
+dataset$dollar_circulation_diff <- c(NA, diff(dataset$dollar_circulation))
+dataset$total_addr_diff <- c(NA, diff(dataset$total_addr))
+dataset$transaction_diff <- c(NA, diff(dataset$transaction))
+dataset$hashrate_diff <- c(NA, diff(dataset$hashrate))
+dataset$rewards_diff <- c(NA, diff(dataset$rewards))
+
+# Rimuovi le variabili temporali originali
+dataset_senza_tempo <- subset(dataset, select = -c(price, dollar_circulation, total_addr, transaction, hashrate, rewards))
+
+# Calcola la matrice di correlazione
+matrix_correlazione <- cor(dataset_senza_tempo, use = "complete.obs")
+
+# Visualizza la matrice di correlazione
+print(matrix_correlazione)
+
+
+corrplot(matrix_correlazione, method = "color", addCoef.col = "black")
+
+
+###LINEAR REGRESSION###
+# Eseguire la regressione lineare
+modello_reg_lineare <- lm(price ~ dollar_circulation + total_addr + transaction + hashrate + rewards , data = dataset[1:(nrow(dataset) - 50),])
+nuovi_dati <- dataset[(nrow(dataset) - 49):nrow(dataset), c("dollar_circulation", "total_addr", "transaction", "hashrate", "rewards")]
+predizioni <- predict(modello_reg_lineare, newdata = nuovi_dati)
+print(predizioni)
+plot(predizioni)
+n_totale <- nrow(dataset)
+
+plot(dataset[(n_totale - 49):n_totale, "price"], type = "l", col = "blue", ylim = range(c(ultime_50_price, predizioni)), ylab = "Price")
+
+# Aggiungi le predizioni al grafico
+lines(predizioni, col = "red")
+summary(modello_reg_lineare)
