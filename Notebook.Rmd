@@ -14,10 +14,15 @@ When you save the notebook, an HTML file containing the code and output will be 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 
 ```{r}
-install.packages("dplyr")
+#install.packages("dplyr")
 library(ggplot2)
 library(dplyr)
 library(corrplot)
+library(readxl)
+library(lmtest) 
+library(forecast)
+library(DIMORA)
+library(fpp2)
 ```
 
 ```{r}
@@ -83,7 +88,7 @@ btc_avg_fees <- monthly(btc_avg_fees, "DateTime")
 
 Global date
 ```{r}
-start_date <- as.Date("2011-09-01") # 2011-09-01
+start_date <- as.Date("2016-09-01") # 2011-09-01
 end_date <- as.Date("2023-10-01") # 2023-10-01
 ```
 
@@ -161,8 +166,73 @@ mat <- cor(dataset)
 corrplot(mat, method = "color", addCoef.col = "black")
 ```
 
+Differentation
+```{r}
+dataset$price_diff <- c(NA, diff(dataset$price))
+dataset$dollar_circulation_diff <- c(NA, diff(dataset$dollar_circulation))
+dataset$total_addr_diff <- c(NA, diff(dataset$total_addr))
+dataset$transaction_diff <- c(NA, diff(dataset$transaction))
+dataset$hashrate_diff <- c(NA, diff(dataset$hashrate))
+dataset$rewards_diff <- c(NA, diff(dataset$rewards))
+```
 
+```{r}
+# Rimuovi le variabili temporali originali
+dataset_senza_tempo <- subset(dataset, select = -c(price, dollar_circulation, total_addr, transaction, hashrate, rewards))
+# Calcola la matrice di correlazione
+matrix_correlazione <- cor(dataset_senza_tempo, use = "complete.obs")
+# Visualizza la matrice di correlazione
+print(matrix_correlazione)
+corrplot(matrix_correlazione, method = "color", addCoef.col = "black")
 
+```
 
+### Linear Regression
 
+```{r}
+price <- log(dataset$price)
+tt <- 1:NROW(dataset)
+
+plot(tt, price, xlab="Time", ylab="Bitcoin price")
+```
+
+```{r}
+acf(price)
+```
+
+fit a linear regression model 
+```{r}
+fit1 <- lm(price~ tt)
+summary(fit1)
+```
+
+```{r}
+plot(tt, price, xlab="Time", ylab="Bitcoin price")
+abline(fit1, col=3)
+```
+
+check the residuals? are they autocorrelated? Test of DW
+```{r}
+dwtest(fit1)
+```
+
+check the residuals
+```{r}
+resfit1<- residuals(fit1)
+plot(resfit1,xlab="Time", ylab="residuals" )
+```
+
+let us do the same with a linear model for time series, so we transform the data into a 'ts' object
+```{r}
+price.ts <- ts(price, frequency = 4)
+ts.plot(price.ts, type="o")
+
+## we fit a linear model with the tslm function
+fitts<- tslm(price.ts~trend)
+
+###obviously it gives the same results of the first model
+summary(fitts)
+
+dwtest(fitts)
+```
 
