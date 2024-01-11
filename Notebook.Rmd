@@ -2,6 +2,7 @@
 title: "R Notebook"
 output: html_notebook
 ---
+### Markdown instruction
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
@@ -12,6 +13,10 @@ Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by press
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+
+### Import Library
 
 ```{r}
 #install.packages("dplyr")
@@ -24,6 +29,9 @@ library(forecast)
 library(DIMORA)
 library(fpp2)
 ```
+
+
+### Data upload
 
 ```{r}
 btc_price <- read.csv("BTC_price_Bitcoin.csv", sep=",", header = TRUE) # daily
@@ -75,6 +83,10 @@ monthly <- function(data, col_date) {
 }
 ```
 
+
+
+### EDA
+
 From day to month
 ```{r}
 btc_price <- monthly(btc_price, "DateTime")
@@ -88,7 +100,7 @@ btc_avg_fees <- monthly(btc_avg_fees, "DateTime")
 
 Global date
 ```{r}
-start_date <- as.Date("2016-09-01") # 2011-09-01
+start_date <- as.Date("2011-09-01") # 2011-09-01
 end_date <- as.Date("2023-10-01") # 2023-10-01
 ```
 
@@ -187,6 +199,8 @@ corrplot(matrix_correlazione, method = "color", addCoef.col = "black")
 
 ```
 
+
+
 ### Linear Regression
 
 ```{r}
@@ -195,7 +209,7 @@ tt <- 1:NROW(dataset)
 
 plot(tt, price, xlab="Time", ylab="Bitcoin price")
 ```
-
+autocorrelation function
 ```{r}
 acf(price)
 ```
@@ -234,5 +248,135 @@ fitts<- tslm(price.ts~trend)
 summary(fitts)
 
 dwtest(fitts)
+```
+
+
+
+### Linear regression with trend and seasonality and forecasting exercise 
+
+```{r}
+#take a portion of data and fit a linear model with tslm
+price1 <- window(price.ts, start=1, end=31 -.1)
+plot(price1)
+```
+
+```{r}
+m1<- tslm(price1 ~ trend+season)
+summary(m1)
+fit<- fitted(m1)
+
+plot(price1)
+lines(fitted(m1), col=2)
+
+fore <- forecast(m1)
+plot(fore)
+```
+
+```{r}
+#analysis of residuals
+res<- residuals(m1) 
+plot(res) 
+#the form of residuals seems to indicate the presence of negative autocorrelation
+Acf(res)
+
+dw<- dwtest(m1, alt="two.sided")
+dw
+```
+
+
+### Nonlinear models for new product growth (diffusion models)
+
+```{r}
+bm_tw<-BM(price,display = T)
+summary(bm_tw)
+
+
+pred_bmtw<- predict(bm_tw, newx=c(1:146))
+pred.insttw<- make.instantaneous(pred_bmtw)
+
+
+plot(price, type= "b",xlab="Quarter", ylab="Quarterly revenues",  pch=16, lty=3, cex=0.6, xlim=c(1,146))
+lines(pred.insttw, lwd=2, col=2)
+
+
+###GBMr1
+GBMr1tw<- GBM(price,shock = "rett",nshock = 1,prelimestimates = c(4.463368e+04, 1.923560e-03, 9.142022e-02, 24,38,-0.1))
+
+
+######GBMe1
+
+GBMe1tw<- GBM(price,shock = "exp",nshock = 1,prelimestimates = c(4.463368e+04, 1.923560e-03, 9.142022e-02, 12,0.1,0.1))
+summary(GBMe1tw)
+
+pred_GBMe1tw<- predict(GBMe1tw, newx=c(1:146))
+pred_GBMe1tw.inst<- make.instantaneous(pred_GBMe1tw)
+
+plot(price, type= "b",xlab="Quarter", ylab="Quarterly revenues",  pch=16, lty=3, cex=0.6, xlim=c(1,146))
+lines(pred_GBMe1tw.inst, lwd=2, col=2)
+
+```
+```{r}
+######GGM 
+GGM_tw<- GGM(price, prelimestimates=c(4.463368e+04, 0.001, 0.01, 1.923560e-03, 9.142022e-02))
+summary(GGM_tw)
+
+pred_GGM_tw<- predict(GGM_tw, newx=c(1:146))
+pred_GGM_tw.inst<- make.instantaneous(pred_GGM_tw)
+
+plot(price, type= "b",xlab="Quarter", ylab="Quarterly revenues",  pch=16, lty=3, cex=0.6, xlim=c(1,146))
+lines(pred_GGM_tw.inst, lwd=2, col=2)
+lines(pred.insttw, lwd=2, col=3)
+
+###Analysis of residuals
+res_GGMtw<- residuals(GGM_tw)
+acf<- acf(residuals(GGM_tw))
+
+
+fit_GGMtw<- fitted(GGM_tw)
+fit_GGMtw_inst<- make.instantaneous(fit_GGMtw)
+```
+```{r}
+####SARMAX refining
+library(forecast)
+####SARMAX model with external covariate 'fit_GGM' 
+s2 <- Arima(cumsum(price), order = c(3,0,1), seasonal=list(order=c(3,0,1), period=4),xreg = fit_GGMtw)
+summary(s2)
+pres2 <- make.instantaneous(fitted(s2))
+
+
+plot(price, type= "b",xlab="Quarter", ylab="Quarterly revenues",  pch=16, lty=3, xaxt="n", cex=0.6)
+lines(fit_GGMtw_inst, lwd=1, lty=2)
+lines(pres2, lty=1,lwd=1)
+```
+
+### ARIMA models
+
+```{r}
+library(fpp2)
+library(forecast) 
+?fpp2
+
+plot(price)
+Acf(price)
+Pacf(price)
+pricets<- tsdisplay(price)
+```
+
+```{r}
+###General indication: if the ACF is exponentially decaying or sinusoidal and there is a significant spike at lag p in PACF and nothing else, 
+##it may be an ARMA(p,d,0). If the PACF is exponentially decaying or sinusoidal and there is a significant spike at lag p in ACF and nothing else, it may be an ARMA(0,d,q). 
+
+arima1<- Arima(price, order=c(0,0,3))
+summary(arima1)
+
+resid1<- residuals(arima1)
+tsdisplay(resid1)
+
+
+plot(price)
+lines(fitted(arima1), col=2)
+
+for1<- forecast(arima1)
+plot(for1)
 ```
 
