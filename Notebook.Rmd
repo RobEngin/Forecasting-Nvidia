@@ -380,3 +380,124 @@ for1<- forecast(arima1)
 plot(for1)
 ```
 
+
+First Arima model
+```{r}
+plot(price, ylab="retail index",xlab="year")
+tsdisplay(price)
+
+##first difference
+diff1<- diff(price) 
+###seasonal difference
+diff4<- diff(price, lag=4) 
+tsdisplay(diff1)
+tsdisplay(diff4)
+
+
+####first Arima model 
+a1<- Arima(price, order=c(0,1,1), seasonal=c(0,0,1))
+fit1<- fitted(a1)
+
+plot(price)
+lines(fit1, col=2)
+
+f1<- forecast(a1)
+plot(f1)
+
+r1<- residuals(a1)
+tsdisplay(r1) 
+```
+
+Second Arima model
+```{r}
+a2<- Arima(price, order=c(0,1,1), seasonal=c(0,0,2))
+fit2<- fitted(a2)
+
+plot(price)
+lines(fit2, col=2)
+
+f2<- forecast(a2)
+plot(f2)
+
+r2<- residuals(a2)
+tsdisplay(r2) 
+```
+
+Third Arima model
+```{r}
+a3<- Arima(price, order=c(0,1,1), seasonal=c(0,1,1))
+fit3<- fitted(a3)
+
+plot(price)
+lines(fit3, col=2)
+
+f3<- forecast(a3)
+plot(f3)
+
+r3<- residuals(a3)
+tsdisplay(r3) 
+```
+Fourth Arima model
+```{r}
+a4<- Arima(price, order=c(0,1,2), seasonal=c(0,1,1))
+fit4<- fitted(a4)
+
+plot(price)
+lines(fit4, col=2)
+
+f4<- forecast(a4)
+autoplot(f4)
+
+r4<- residuals(a4)
+tsdisplay(r4) 
+```
+
+Fifth Arima model
+```{r}
+auto.a<- auto.arima(price)
+auto.a
+
+autoplot(forecast(auto.a))
+checkresiduals(auto.a)
+```
+
+```{r}
+##plot of seasonal differentiated data, with ACF and PACF
+tsdisplay(diff(price,12), main="seasonal differenced data", xlab="year")
+
+##We fit an ARIMA model base on the inspection of ACF and PACF with 3 AR components
+fit<- Arima(price, order=c(3,0,1),seasonal=c(0,1,2), lambda=0)
+summary(fit)
+
+##Check residuals
+tsdisplay(residuals(fit))
+Box.test(residuals(fit), lag=36,fitdf=6, type="Ljung")
+
+
+##perform the forecasting
+f<- forecast(fit)
+
+plot(f, ylab="sales", xlab="year")
+```
+
+```{r}
+air.model <- Arima(window(price,end=146),order=c(0,1,1),
+                   seasonal=list(order=c(0,1,1),period=12),lambda=0)
+plot(forecast(air.model,h=24))
+lines(price)
+
+# Apply fitted model to later data
+air.model2 <- Arima(window(price,start=1),model=air.model)
+
+# in-sample one-step forecasts
+accuracy(air.model)
+# out-of-sample one-step forecasts
+accuracy(air.model2)
+```
+
+### ARMAX Models
+
+```{r}
+
+```
+
