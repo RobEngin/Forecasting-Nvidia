@@ -498,6 +498,12 @@ accuracy(air.model2)
 ### ARMAX Models
 
 ```{r}
+armax1<- Arima(price, xreg=dataset_log$dollar_circulation, order=c(1,0,1))
+res1<- residuals(armax1)
+Acf(res1)
 
+fitted(armax1)
+plot(price)
+lines(fitted(armax1), col=2)
 ```
 
