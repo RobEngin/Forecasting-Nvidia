@@ -1,0 +1,267 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(readxl)
+library(lmtest) 
+library(forecast)
+library(DIMORA)
+library(fpp2)
+library(tidyr)
+library(lubridate)
+```
+
+```{r}
+number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/number-of-employees.xlsx")
+quarterly_net_income <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/quarterly-net-income.xlsx")
+research_development_spending <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/research-development-spending.xlsx")
+revenue_by_quarter <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/revenue-by-quarter.xlsx")
+revenue_by_segment <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/revenue-by-segment.xlsx")
+```
+
+```{r}
+# Rimuovere le prime 4 righe e l'ultima riga
+revenue_by_quarter <- revenue_by_quarter %>%
+  slice(5:(n() - 1))
+
+research_development_spending <- research_development_spending %>%
+  slice(4:n())
+
+number_of_employees <- number_of_employees %>%
+  slice(2:n())
+```
+
+
+```{r}
+tt <- 1:NROW(revenue_by_quarter)
+revenue <- revenue_by_quarter$billion
+net_income <- quarterly_net_income$income
+
+ggplot(data = revenue_by_quarter, aes(x = tt, y = billion)) +
+  geom_line() +
+  labs(x = "Quarter", y = "Billion", title = "Quarter vs. Billion")
+```
+
+```{r}
+# Normalizzare i dati
+normalize <- function(x) {
+  return((x - mean(x)) / sd(x))
+}
+
+# Ripetere i valori annuali per ciascuno dei quattro trimestri
+repeat_annual_data <- function(annual_data) {
+  return(rep(annual_data, each = 4))
+}
+
+employees_repeated <- repeat_annual_data(number_of_employees$employees)
+spending_repeated <- repeat_annual_data(research_development_spending$billion)
+
+# Normalizzare i dati annuali ripetuti
+n_employees <- normalize(employees_repeated)
+n_spending <- normalize(spending_repeated)
+
+n_revenue <- normalize(revenue)
+n_net_income <- normalize(net_income)
+
+# Creare un dataframe combinato
+combined_data <- data.frame(
+  Quarter = tt,
+  Revenue = n_revenue,
+  Net_Income = n_net_income,
+  Employees = n_employees,
+  Spending = n_spending
+)
+
+# Trasformare il dataframe in formato lungo
+combined_data_long <- combined_data %>%
+  pivot_longer(cols = c("Revenue", "Net_Income", "Employees", "Spending"), names_to = "Metric", values_to = "Value")
+
+# Creare il grafico
+ggplot(data = combined_data_long, aes(x = Quarter, y = Value, color = Metric)) +
+  geom_line() +
+  labs(x = "Quarter", y = "Value", title = "Quarterly Revenue and Net Income") +
+  theme_minimal()
+
+```
+
+```{r}
+
+revenue_by_segment_long <- pivot_longer(revenue_by_segment, 
+                                        cols = -year, 
+                                        names_to = "Segment", 
+                                        values_to = "Revenue")
+
+ggplot(data = revenue_by_segment_long, aes(x = year, y = Revenue, color = Segment)) +
+  geom_line() +
+  labs(x = "year", y = "Revenue", title = "Revenue by Segment Over Time") +
+  theme_minimal()
+
+```
+
+```{r}
+# Creare la serie temporale
+revenue_ts <- ts(revenue_by_quarter$billion, start=c(2007, 1), frequency=4)
+
+# Decomporre la serie temporale
+decomposed_revenue <- stl(revenue_ts, s.window="periodic")
+
+# Visualizzare la decomposizione
+autoplot(decomposed_revenue) +
+  labs(title = "Decomposition of Quarterly Revenue", x = "Time")
+
+# Estrarre la componente stagionale
+seasonal_component <- decomposed_revenue$time.series[, "seasonal"]
+
+# Creare il grafico della stagionalità
+ggplot(data = data.frame(Quarter = time(revenue_ts), Seasonal = seasonal_component), 
+       aes(x = Quarter, y = Seasonal)) +
+  geom_line(color = "blue") +
+  labs(x = "Quarter", y = "Seasonal Component", title = "Seasonal Component of Quarterly Revenue") +
+  theme_minimal()
+
+```
+
+
+```{r}
+##check the residuals
+resfit1<- residuals(fit1)
+plot(resfit1, xlab="Time", ylab="residuals" )
+acf(resfit1)
+
+##fit a linear regression model 
+fit1 <- lm(revenue~ tt)
+summary(fit1)
+
+##plot of the model
+plot(tt, revenue, xlab="Time", ylab="Billion")
+abline(fit1, col=3)
+
+##check the residuals? are they autocorrelated? Test of DW
+dwtest(fit1)
+```
+
+
+```{r}
+##let us do the same with a linear model for time series, so we transform the data into a 'ts' object
+revenue.ts <- ts(revenue, frequency = 4)
+ts.plot(revenue.ts, type="o")
+
+## we fit a linear model with the tslm function
+fitts<- tslm(revenue.ts~trend)
+
+###obviously it gives the same results of the first model
+summary(fitts)
+
+dwtest(fitts)
+```
+```{r}
+acf(revenue)
+pacf(revenue)
+```
+```{r}
+# Differenziazione per rendere stazionaria la serie
+diff_revenue <- diff(revenue.ts, differences=1)
+
+# Verificare la stazionarietà
+acf(diff_revenue, main="ACF of Differenced Revenue")
+pacf(diff_revenue, main="PACF of Differenced Revenue")
+
+```
+```{r}
+# Utilizzare auto.arima per trovare il miglior modello ARIMA
+best_arima_model <- auto.arima(revenue.ts)
+summary(best_arima_model)
+
+# Visualizzare i residui del modello
+checkresiduals(best_arima_model)
+
+```
+
+```{r}
+# Installare e caricare i pacchetti necessari
+if (!require(forecast)) {
+    install.packages("forecast")
+}
+if (!require(tseries)) {
+    install.packages("tseries")
+}
+
+library(forecast)
+library(tseries)
+
+# Creare la serie temporale
+revenue_ts <- ts(revenue_by_quarter$billion, start=c(2007, 1), frequency=4)
+
+# Differenziare i dati per renderli stazionari
+diff_revenue <- diff(revenue_ts, differences=1)
+
+# Calcolare e tracciare l'ACF e la PACF della serie differenziata
+acf(diff_revenue, main="ACF of Differenced Revenue")
+pacf(diff_revenue, main="PACF of Differenced Revenue")
+
+# Utilizzare auto.arima per trovare il miglior modello ARIMA
+best_arima_model <- auto.arima(revenue_ts)
+summary(best_arima_model)
+
+residuals_arima <- residuals(best_arima_model)
+
+# Visualizzare i residui del modello
+checkresiduals(best_arima_model)
+
+# Prevedere i prossimi 8 trimestri
+forecast_horizon <- 8
+forecast_revenue <- forecast(best_arima_model, h = forecast_horizon)
+
+# Visualizzare le previsioni
+autoplot(forecast_revenue) +
+  labs(title = "Revenue Forecast with ARIMA", x = "Date", y = "Revenue (Billion)") +
+  autolayer(fitted(best_arima_model), series = "Fitted", PI = FALSE)
+
+```
+
+```{r}
+#data transformed as time series
+revenue.ts<-ts(revenue, frequency=4)
+
+#Model with trend and seasonality
+fit3 <- tslm(revenue.ts~ trend+season)
+summary(fit3)
+
+#check the residuals
+residuals_arima <- residuals(fit3)
+
+plot(residuals_arima, ylab="residuals")
+dwtest(fit3)
+
+###plot of the model
+plot(revenue.ts, ylab="Billion", xlab="Time")
+lines(fitted(fit3), col=2)
+```
+
+```{r}
+# Plot dei residui
+plot(residuals_arima, main="Residuals of ARIMA Model", ylab="Residuals", xlab="Time")
+abline(h = 0, col = "red")
+
+# Autocorrelazione dei residui
+acf(residuals_arima, main="ACF of Residuals")
+
+# Test di normalità (ad esempio, test di Shapiro-Wilk)
+shapiro.test(residuals_arima)
+
+# Plot della varianza dei residui
+plot(residuals_arima^2, main="Squared Residuals of ARIMA Model", ylab="Squared Residuals", xlab="Time")
+
+# Verificare i residui del modello con checkresiduals
+checkresiduals(best_arima_model)
+
+```
+
+
+
+
