@@ -90,16 +90,29 @@ ggplot(data = combined_data_long, aes(x = Quarter, y = Value, color = Metric)) +
 ```
 
 ```{r}
+# Sostituisci i valori NA con zero
+revenue_by_segment[is.na(revenue_by_segment)] <- 0
 
-revenue_by_segment_long <- pivot_longer(revenue_by_segment, 
-                                        cols = -year, 
-                                        names_to = "Segment", 
-                                        values_to = "Revenue")
+# Trasforma i dati in formato lungo per ggplot2
+df_long <- revenue_by_segment %>%
+  pivot_longer(cols = -year, names_to = "category", values_to = "value")
 
-ggplot(data = revenue_by_segment_long, aes(x = year, y = Revenue, color = Segment)) +
-  geom_line() +
-  labs(x = "year", y = "Revenue", title = "Revenue by Segment Over Time") +
-  theme_minimal()
+# Seleziona una palette di colori con abbastanza variazioni
+palette_colors <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", 
+                    "#ffd92f", "#e5c494", "#b3b3b3", "#1b9e77", "#d95f02", 
+                    "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+
+# Crea il grafico
+ggplot(df_long, aes(x = factor(year), y = value, fill = category)) +
+  geom_bar(stat = "identity", position = "stack") +  # Usa "stack" per impilare le barre
+  labs(x = "Year", y = "Value", title = "Annual Data by Category") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "right",  # Sposta la legenda a destra
+        legend.text = element_text(size = 7),
+        legend.title = element_text(size = 8)) +
+  scale_fill_manual(values = palette_colors) +
+  guides(fill = guide_legend(ncol = 1, byrow = TRUE))  # Migliora la leggibilità della legenda
 
 ```
 
@@ -214,7 +227,7 @@ residuals_arima <- residuals(best_arima_model)
 checkresiduals(best_arima_model)
 
 # Prevedere i prossimi 8 trimestri
-forecast_horizon <- 8
+forecast_horizon <- 12
 forecast_revenue <- forecast(best_arima_model, h = forecast_horizon)
 
 # Visualizzare le previsioni
@@ -223,6 +236,14 @@ autoplot(forecast_revenue) +
   autolayer(fitted(best_arima_model), series = "Fitted", PI = FALSE)
 
 ```
+```{r}
+air.model <- Arima(window(revenue_ts,end=2023),order=c(2,0,2),
+                   seasonal=list(order=c(0,1,0),period=4),lambda=0)
+plot(forecast(air.model,h=12))
+lines(revenue_ts)
+```
+
+
 
 ```{r}
 #data transformed as time series
