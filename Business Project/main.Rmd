@@ -38,16 +38,6 @@ number_of_employees <- number_of_employees %>%
 
 
 ```{r}
-tt <- 1:NROW(revenue_by_quarter)
-revenue <- revenue_by_quarter$billion
-net_income <- quarterly_net_income$income
-
-ggplot(data = revenue_by_quarter, aes(x = tt, y = billion)) +
-  geom_line() +
-  labs(x = "Quarter", y = "Billion", title = "Quarter vs. Billion")
-```
-
-```{r}
 # Normalizzare i dati
 normalize <- function(x) {
   return((x - mean(x)) / sd(x))
@@ -117,6 +107,116 @@ ggplot(df_long, aes(x = factor(year), y = value, fill = category)) +
 ```
 
 ```{r}
+# Assicurati che tutte le colonne utilizzate per la correlazione siano numeriche
+# Supponiamo che i dati siano nelle colonne 2 delle rispettive tabelle (adatta l'indice di colonna se necessario)
+data_combined <- data.frame(
+  revenue = revenue_by_quarter$billion,
+  net_income = quarterly_net_income$income,
+  employees = employees_repeated,
+  rnd_spending = spending_repeated
+)
+
+# Calcolo della matrice di correlazione
+correlation_matrix <- cor(data_combined, use = "complete.obs")
+
+# Visualizzazione della matrice di correlazione
+print(correlation_matrix)
+
+# Se desideri una visualizzazione grafica
+library(corrplot)
+corrplot(correlation_matrix, method = "circle")
+
+# Creazione delle serie temporali
+revenue.ts <- ts(revenue_by_quarter$billion, frequency = 4)
+net_income.ts <- ts(quarterly_net_income$income, frequency = 4)
+employees_repeated <- ts(employees_repeated, frequency = 4)
+spending_repeated <- ts(spending_repeated, frequency = 4)
+
+# Differenziazione delle serie temporali
+diff_revenue <- diff(revenue.ts)
+diff_net_income <- diff(net_income.ts)
+diff_employees <- diff(employees_repeated)
+diff_spending <- diff(spending_repeated)
+
+# Creazione del dataframe con le serie differenziate
+data_combined_diff <- data.frame(
+  diff_revenue = as.numeric(diff_revenue),
+  diff_net_income = as.numeric(diff_net_income),
+  diff_employees = as.numeric(diff_employees),
+  diff_spending = as.numeric(diff_spending)
+)
+
+# Calcolo della matrice di correlazione
+correlation_matrix_diff <- cor(data_combined_diff, use = "complete.obs")
+
+# Visualizzazione della matrice di correlazione
+print(correlation_matrix_diff)
+
+# Visualizzazione grafica della matrice di correlazione
+corrplot(correlation_matrix_diff, method = "circle")
+
+```
+
+
+```{r}
+tt <- 1:NROW(revenue_by_quarter)
+revenue <- revenue_by_quarter$billion
+net_income <- quarterly_net_income$income
+revenue_by_quarter$quarter <- as.yearqtr(revenue_by_quarter$quarter, format = "Q%q '%y")
+
+tsdisplay(revenue)
+
+# Calcolo della media mobile (esempio con finestra di 12 mesi per dati mensili)
+moving_average <- ma(revenue, order = 12)
+
+ggplot(data = revenue_by_quarter, aes(x = tt)) +
+  geom_line(aes(y = billion)) +
+  geom_line(aes(y = moving_average), color = "red") +
+  labs(x = "Quarter", y = "Billion", title = "Quarter vs. Billion")
+
+
+
+```
+```{r}
+# Aggiungi colonne per anno e trimestre
+revenue_by_quarter <- revenue_by_quarter %>%
+  mutate(
+    year = as.integer(format(quarter, "%Y")),
+    quarter_num = as.integer(format(quarter, "%q"))
+  )
+
+# Crea un grafico stagionale
+ggplot(revenue_by_quarter, aes(x = quarter_num, y = billion, group = year, color = factor(year))) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:4, labels = c("Q1", "Q2", "Q3", "Q4")) +
+  labs(x = "Quarter", y = "Revenue (Billion)", title = "Seasonal Plot: Revenue by Quarter", color = "Year") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+
+
+```{r}
+#Dato che i dati mostrano una tendenza, potrebbe essere necessario differenziare i dati per renderli stazionari prima di applicare un modello ARIMA.
+
+#La differenziazione è una tecnica utilizzata nell'analisi delle serie temporali per trasformare una serie non stazionaria in una stazionaria. Una serie temporale è stazionaria quando le sue proprietà statistiche, come la media e la varianza, non cambiano nel tempo. La stazionarietà è un requisito fondamentale per l'applicazione di molti modelli di serie temporali, come l'ARIMA, in quanto permette di assumere che i processi generati dai dati siano invarianti nel tempo.
+
+# Differenziazione dei dati
+diff_revenue <- diff(revenue)
+
+# Visualizzazione dei dati differenziati
+plot(diff_revenue, type = "l", main = "Differenced Revenue")
+
+# Test di stazionarietà (ad esempio, test di Dickey-Fuller aumentato)
+library(tseries)
+adf.test(diff_revenue)
+
+
+```
+
+
+
+```{r}
 # Creare la serie temporale
 revenue_ts <- ts(revenue_by_quarter$billion, start=c(2007, 1), frequency=4)
 
@@ -141,69 +241,6 @@ ggplot(data = data.frame(Quarter = time(revenue_ts), Seasonal = seasonal_compone
 
 
 ```{r}
-##check the residuals
-resfit1<- residuals(fit1)
-plot(resfit1, xlab="Time", ylab="residuals" )
-acf(resfit1)
-
-##fit a linear regression model 
-fit1 <- lm(revenue~ tt)
-summary(fit1)
-
-##plot of the model
-plot(tt, revenue, xlab="Time", ylab="Billion")
-abline(fit1, col=3)
-
-##check the residuals? are they autocorrelated? Test of DW
-dwtest(fit1)
-```
-
-
-```{r}
-##let us do the same with a linear model for time series, so we transform the data into a 'ts' object
-revenue.ts <- ts(revenue, frequency = 4)
-ts.plot(revenue.ts, type="o")
-
-## we fit a linear model with the tslm function
-fitts<- tslm(revenue.ts~trend)
-
-###obviously it gives the same results of the first model
-summary(fitts)
-
-dwtest(fitts)
-```
-```{r}
-acf(revenue)
-pacf(revenue)
-```
-```{r}
-# Differenziazione per rendere stazionaria la serie
-diff_revenue <- diff(revenue.ts, differences=1)
-
-# Verificare la stazionarietà
-acf(diff_revenue, main="ACF of Differenced Revenue")
-pacf(diff_revenue, main="PACF of Differenced Revenue")
-
-```
-```{r}
-# Utilizzare auto.arima per trovare il miglior modello ARIMA
-best_arima_model <- auto.arima(revenue.ts)
-summary(best_arima_model)
-
-# Visualizzare i residui del modello
-checkresiduals(best_arima_model)
-
-```
-
-```{r}
-# Installare e caricare i pacchetti necessari
-if (!require(forecast)) {
-    install.packages("forecast")
-}
-if (!require(tseries)) {
-    install.packages("tseries")
-}
-
 library(forecast)
 library(tseries)
 
@@ -237,7 +274,7 @@ autoplot(forecast_revenue) +
 
 ```
 ```{r}
-air.model <- Arima(window(revenue_ts,end=2023),order=c(2,0,2),
+air.model <- Arima(window(revenue_ts,end=2022),order=c(2,0,2),
                    seasonal=list(order=c(0,1,0),period=4),lambda=0)
 plot(forecast(air.model,h=12))
 lines(revenue_ts)
@@ -246,43 +283,75 @@ lines(revenue_ts)
 
 
 ```{r}
-#data transformed as time series
-revenue.ts<-ts(revenue, frequency=4)
+# Funzione per visualizzare il modello
+plot_model <- function(model, data) {
+  plot(data, ylab="Billion", xlab="Time")
+  lines(fitted(model), col=2)
+}
 
-#Model with trend and seasonality
-fit3 <- tslm(revenue.ts~ trend+season)
-summary(fit3)
+plot_model_forecast <- function(model, data, forecast_horizon) {
+  forecasted_values <- forecast(model, h = forecast_horizon)
+  plot(forecasted_values, ylab = "Billion", xlab = "Time")
+  lines(fitted(model), col = 2)
+}
 
-#check the residuals
-residuals_arima <- residuals(fit3)
+# Modello con trend e stagionalità
+fit_lm <- tslm(revenue.ts ~ trend + season)
+summary(fit_lm)
 
-plot(residuals_arima, ylab="residuals")
-dwtest(fit3)
+# Verifica dei residui
+checkresiduals(fit_lm)
 
-###plot of the model
-plot(revenue.ts, ylab="Billion", xlab="Time")
-lines(fitted(fit3), col=2)
+# Visualizzazione del modello
+plot_model(fit_lm, revenue.ts)
+
+plot_model_forecast(fit_lm, revenue.ts, forecast_horizon = 8)
+
 ```
+
 
 ```{r}
-# Plot dei residui
-plot(residuals_arima, main="Residuals of ARIMA Model", ylab="Residuals", xlab="Time")
-abline(h = 0, col = "red")
+# Modello Holt-Winters
+fit_hw <- hw(revenue.ts, seasonal = "additive")
+summary(fit_hw)
 
-# Autocorrelazione dei residui
-acf(residuals_arima, main="ACF of Residuals")
+# Verifica dei residui
+checkresiduals(fit_hw)
 
-# Test di normalità (ad esempio, test di Shapiro-Wilk)
-shapiro.test(residuals_arima)
+# Visualizzazione del modello
+plot_model(fit_hw, revenue.ts)
 
-# Plot della varianza dei residui
-plot(residuals_arima^2, main="Squared Residuals of ARIMA Model", ylab="Squared Residuals", xlab="Time")
-
-# Verificare i residui del modello con checkresiduals
-checkresiduals(best_arima_model)
+plot_model_forecast(fit_hw, revenue.ts, forecast_horizon = 8)
 
 ```
+```{r}
+# Modello di regressione lineare con componente quadratica
+fit_lm_quad <- tslm(revenue.ts ~ trend + I(trend^2) + season)
+summary(fit_lm_quad)
+
+# Verifica dei residui
+checkresiduals(fit_lm_quad)
+
+# Visualizzazione del modello
+plot_model(fit_lm_quad, revenue.ts)
+
+plot_model_forecast(fit_lm_quad, revenue.ts, forecast_horizon = 8)
+
+```
+```{r}
+# Modello GAM con specifica dei nodi
+fit_gam <- gam(revenue ~ s(time, k = 10) + s(quarter, bs = "cc", k = 4), data = revenue_gam_df)
+summary(fit_gam)
+
+# Verifica dei residui
+residuals_gam <- residuals(fit_gam)
+plot(residuals_gam, ylab = "residuals")
+dwtest(residuals_gam ~ revenue_gam_df$time)
+
+# Visualizzazione del modello
+plot(revenue.ts, ylab = "Billion", xlab = "Time")
+lines(fitted(fit_gam), col = 2)
 
 
-
+```
 
