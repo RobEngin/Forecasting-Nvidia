@@ -55,8 +55,10 @@ spending_repeated <- repeat_annual_data(research_development_spending$billion)
 n_employees <- normalize(employees_repeated)
 n_spending <- normalize(spending_repeated)
 
-n_revenue <- normalize(revenue)
-n_net_income <- normalize(net_income)
+n_revenue <- normalize(revenue_by_quarter$billion)
+n_net_income <- normalize(quarterly_net_income$income)
+
+tt <- 1:NROW(revenue_by_quarter)
 
 # Creare un dataframe combinato
 combined_data <- data.frame(
@@ -78,6 +80,21 @@ ggplot(data = combined_data_long, aes(x = Quarter, y = Value, color = Metric)) +
   theme_minimal()
 
 ```
+```{r}
+
+ts_employees <- ts(employees_repeated, frequency = 4)
+ts_net_income <- ts(quarterly_net_income$income, frequency = 4)
+ts_spending <- ts(spending_repeated, frequency = 4)
+ts_revenue <- ts(revenue_by_quarter$billion, frequency = 4)
+
+tslm_rev <- tslm(ts_revenue ~ trend+season+ts_spending+ts_net_income+ts_employees)
+summary(tslm_rev) # ts_employees non è significativa
+
+library(car)
+vif(tslm_rev)
+
+```
+
 
 ```{r}
 # Sostituisci i valori NA con zero

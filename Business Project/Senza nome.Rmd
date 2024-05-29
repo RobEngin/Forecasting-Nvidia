@@ -1,0 +1,40 @@
+---
+title: "LinearReg"
+output: pdf_document
+date: "2024-05-28"
+---
+
+```{r}
+number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/number-of-employees.xlsx")
+quarterly_net_income <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/quarterly-net-income.xlsx")
+rd_spending <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/research-development-spending.xlsx")
+revenue_by_quarter <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/revenue-by-quarter.xlsx")
+revenue_by_segment <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/revenue-by-segment.xlsx")
+```
+
+```{r}
+sum(is.na(number_of_employees))
+sum(is.na(quarterly_net_income))
+sum(is.na(rd_spending))
+sum(is.na(revenue_by_quarter))
+```
+```{r}
+# Rimuovere le prime 4 righe e l'ultima riga
+revenue_by_quarter <- revenue_by_quarter %>%
+  slice(5:(n() - 1))
+
+rd_spending <- rd_spending %>%
+  slice(4:n())
+
+number_of_employees <- number_of_employees %>%
+  slice(2:n())
+
+number_of_employees <- repeat_annual_data(number_of_employees$employees)
+rd_spending <- repeat_annual_data(research_development_spending$billion)
+
+
+tt <- 1:NROW(revenue_by_quarter)
+```
+
+
+
