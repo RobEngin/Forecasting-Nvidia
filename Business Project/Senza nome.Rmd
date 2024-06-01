@@ -5,6 +5,11 @@ date: "2024-05-28"
 ---
 
 ```{r}
+library(car)
+```
+
+
+```{r}
 number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/number-of-employees.xlsx")
 quarterly_net_income <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/quarterly-net-income.xlsx")
 rd_spending <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/research-development-spending.xlsx")
@@ -19,7 +24,7 @@ sum(is.na(rd_spending))
 sum(is.na(revenue_by_quarter))
 ```
 ```{r}
-# Rimuovere le prime 4 righe e l'ultima riga
+# Modifico i dati in modo che abbiano la stessa lunghezza
 revenue_by_quarter <- revenue_by_quarter %>%
   slice(5:(n() - 1))
 
@@ -32,9 +37,206 @@ number_of_employees <- number_of_employees %>%
 number_of_employees <- repeat_annual_data(number_of_employees$employees)
 rd_spending <- repeat_annual_data(research_development_spending$billion)
 
-
 tt <- 1:NROW(revenue_by_quarter)
 ```
 
+```{r}
+ts_employees <- ts(number_of_employees, frequency = 4)
+ts_net_income <- ts(quarterly_net_income$income, frequency = 4)
+ts_spending <- ts(rd_spending, frequency = 4)
+ts_revenue <- ts(revenue_by_quarter$billion, frequency = 4)
+```
+
+```{r}
+tslm_rev <- tslm(ts_revenue ~ trend+season+ts_spending+ts_net_income+ts_employees)
+summary(tslm_rev) # ts_employees non è significativa
+
+checkresiduals(tslm_rev)
+vif(tslm_rev)
+```
+
+```{r}
+# Calcolare la matrice di correlazione
+cor_matrix <- cor(data.frame(ts_employees, ts_net_income, ts_spending, ts_revenue))
+print(cor_matrix)
+```
+```{r}
+# Per problemi di collinearità e perchè ts_employees non è rilevante per il nostro modello vado a rimuovere e riprovo
+tslm_rev <- tslm(ts_revenue ~ trend+season+ts_spending+ts_net_income)
+summary(tslm_rev) # ts_employees non è significativa
+
+checkresiduals(tslm_rev)
+vif(tslm_rev)
+```
+```{r}
+# Funzione per calcolare gli errori
+calculate_errors <- function(actual, forecast) {
+  ME <- mean(actual - forecast) # Mean Error
+  RMSE <- sqrt(mean((actual - forecast)^2)) # Root Mean Squared Error
+  MAE <- mean(abs(actual - forecast)) # Mean Absolute Error
+  MPE <- mean((actual - forecast) / actual) * 100 # Mean Percentage Error
+  MAPE <- mean(abs((actual - forecast) / actual)) * 100 # Mean Absolute Percentage Error
+  return(list(ME = ME, RMSE = RMSE, MAE = MAE, MPE = MPE, MAPE = MAPE))
+}
+
+# Calcolo delle previsioni
+forecast_values <- fitted(tslm_rev)
+actual_values <- ts_revenue
+
+# Calcolo degli errori
+errors <- calculate_errors(actual_values, forecast_values)
+
+# Visualizzazione dei risultati
+print(errors)
+```
+```{r}
+# Libreria necessaria
+library(glmnet)
+
+# Combina tutte le variabili in un unico dataframe
+data_combined <- data.frame(
+  revenue = as.numeric(ts_revenue),
+  trend = 1:length(ts_revenue),
+  season = as.factor(cycle(ts_revenue)),
+  spending = as.numeric(ts_spending),
+  net_income = as.numeric(ts_net_income),
+  employees = as.numeric(ts_employees)
+)
+
+# Preparazione dei dati
+X <- model.matrix(ts_revenue ~ ts_spending + ts_net_income, data = data_combined)
+y <- ts_revenue
+
+
+
+# Ridge Regression
+ridge_model <- cv.glmnet(X, y, alpha = 0)  # alpha=0 per Ridge
+
+# Coefficienti del modello
+coef(ridge_model, s = "lambda.min")
+
+# Previsioni con Ridge Regression
+ridge_predictions <- predict(ridge_model, s = "lambda.min", newx = X)
+
+# Calcolo degli errori per Ridge Regression
+ridge_errors <- calculate_errors(y, ridge_predictions)
+print(ridge_errors)
+
+```
+
+
+```{r}
+# Caricare i pacchetti necessari
+library(ggplot2)
+library(forecast)
+library(dplyr)
+
+# Creare un data frame con i valori reali e quelli predetti
+data <- data.frame(
+  Date = time(ts_revenue),
+  Revenue = as.numeric(ts_revenue),
+  Fitted = fitted(tslm_rev)
+)
+
+# Creare il grafico con ggplot2
+ggplot(data, aes(x = as.Date(Date))) +  # Conversione della data
+  geom_point(aes(y = Revenue)) +  # Valori reali
+  geom_line(aes(y = Fitted), color = "red") +  # Valori predetti
+  ggtitle("Real Revenue vs Fitted Values with TSLM") +
+  xlab("Date") +
+  ylab("Revenue")
+```
+```{r}
+library(glmnet)
+
+# Creare la matrice di design per la regressione Lasso
+X <- model.matrix(ts_revenue ~ ts_employees + ts_net_income + ts_spending)[, -1]
+y <- as.vector(ts_revenue)
+
+# Eseguire la regressione Lasso con cross-validazione
+cv_lasso <- cv.glmnet(X, y, alpha = 1)
+lasso_model <- glmnet(X, y, alpha = 1)
+
+# Tracciare il grafico dei coefficienti
+plot(lasso_model, xvar = "lambda", label = TRUE)
+
+# Calcolare le previsioni della Lasso Regression
+lasso_predictions <- predict(lasso_model, s = cv_lasso$lambda.min, newx = X)
+
+# Calcolare i residui
+lasso_residuals <- y - lasso_predictions
+
+# Convertire i residui in un oggetto ts
+ts_lasso_residuals <- ts(lasso_residuals, frequency = 4)
+
+# Utilizzare checkresiduals per analizzare i residui
+checkresiduals(ts_lasso_residuals)
+
+# Creare un data frame con i valori reali e quelli predetti
+data <- data.frame(
+  Date = as.Date(time(ts_revenue), origin = "1970-01-01"),
+  Revenue = as.numeric(ts_revenue),
+  Lasso_Fitted = as.numeric(lasso_predictions),
+  Residuals = as.numeric(lasso_residuals)
+)
+
+# Creare il grafico con ggplot2
+ggplot(data, aes(x = Date)) +
+  geom_point(aes(y = Revenue), color = "blue") +  # Valori reali
+  geom_line(aes(y = Lasso_Fitted), color = "red") +  # Valori predetti dalla Lasso
+  ggtitle("Real Revenue vs Fitted Values with Lasso Regression") +
+  xlab("Date") +
+  ylab("Revenue") +
+  theme_minimal()
+
+```
+
+```{r}
+# Creare una matrice con le variabili esogene
+xreg <- cbind(ts_employees, ts_net_income, ts_spending)
+
+# Utilizzare auto.arima per trovare il miglior modello ARIMA
+best_arima_model <- auto.arima(ts_revenue, xreg=xreg)
+summary(best_arima_model)
+
+residuals_arima <- residuals(best_arima_model)
+
+# Visualizzare i residui del modello
+checkresiduals(best_arima_model)
+
+# Prevedere i prossimi 8 trimestri
+forecast_horizon <- 4
+forecast_revenue <- forecast(best_arima_model, xreg=xreg, h = forecast_horizon)
+
+# Visualizzare le previsioni
+autoplot(forecast_revenue) +
+  labs(title = "Revenue Forecast with ARIMA", x = "Date", y = "Revenue (Billion)") +
+  autolayer(fitted(best_arima_model), series = "Fitted", PI = FALSE)
+```
+
+```{r}
+# Creare una matrice con le variabili esogene
+xreg <- cbind(ts_employees, ts_net_income, ts_spending)
+
+# Utilizzare auto.arima per trovare il miglior modello ARIMA
+best_arima_model <- auto.arima(ts_revenue, xreg = xreg)
+summary(best_arima_model)
+
+# Visualizzare i residui del modello
+checkresiduals(best_arima_model)
+
+# Prevedere i prossimi 4 trimestri (1 anno)
+forecast_horizon <- 8
+# Dato che stiamo prevedendo solo 4 trimestri, utilizziamo le stesse variabili esogene
+xreg_future <- tail(xreg, forecast_horizon)
+
+# Prevedere i prossimi 4 trimestri
+forecast_revenue <- forecast(best_arima_model, xreg = xreg_future, h = forecast_horizon)
+
+# Visualizzare le previsioni
+autoplot(forecast_revenue) +
+  labs(title = "Revenue Forecast with ARIMA", x = "Date", y = "Revenue (Billion)") +
+  autolayer(fitted(best_arima_model), series = "Fitted", PI = FALSE)
+```
 
 
