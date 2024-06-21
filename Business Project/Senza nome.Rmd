@@ -152,6 +152,11 @@ repeat_annual_data <- function(annual_data) {
 ```
 
 ```{r}
+plot_model_forecast <- function(model, data, forecast_horizon) {
+  forecasted_values <- forecast(model, h = forecast_horizon)
+  plot(forecasted_values, ylab = "Billion", xlab = "Time")
+  lines(fitted(model), col = 2)
+}
 ```
 
 
@@ -434,35 +439,142 @@ ts_net_income <- ts(quarterly_net_income$Value, frequency = 4)
 ts_spending <- ts(rd_spending$Valore, frequency = 4)
 ts_revenue <- ts(revenue_by_quarter_2$Revenue, frequency = 4)
 ts_stock <- ts(nvda_stock$Price, frequency = 4)
+
 ```
 
 ```{r}
-tslm_rev <- tslm(ts_revenue ~ trend+season+ts_stock+ts_spending+ts_net_income+ts_employees)
+#aggretgate all timesereis in a dataframe
+
+data_combined <- data.frame(
+  revenue = ts_revenue,
+  net_income = ts_net_income,
+  employees = ts_employees,
+  rnd_spending = ts_spending,
+  stock = ts_stock
+)
+
+print(head(data_combined))
+
+```
+```{r}
+#plot data_combined
+ggplot(data_combined, aes(x = 1:nrow(data_combined), y = net_income, group = 1)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Revenue", x = "Index", y = "Revenue (Billion)") +
+  theme_minimal()
+```
+```{r}
+#split the data into training and test set
+
+train_size <- 0.87
+train_index <- round(nrow(data_combined) * train_size)
+
+train_data <- data_combined[1:train_index, ]
+test_data <- data_combined[(train_index + 1):nrow(data_combined), ]
+
+print(nrow(train_data))
+print(nrow(test_data))
+
+#esctract terget y from train and test that is ts_revenue
+
+train_y <- ts_revenue[1:train_index]
+test_y <- ts_revenue[(train_index + 1):nrow(data_combined)]
+
+print(length(train_y))
+print(length(test_y))
+
+#divide target from features
+train_x <- train_data %>% select(-revenue)
+test_x <- test_data %>% select(-revenue)
+
+print(nrow(train_x))
+print(nrow(test_x))
+
+```
+```{r}
+#plot features and target
+
+ggplot(train_data, aes(x = 1:nrow(train_data), y = revenue, group = 1)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Revenue", x = "Index", y = "Revenue (Billion)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = 1:nrow(train_data), y = net_income, group = 1)) + 
+  geom_line() +
+  geom_point() +
+  labs(title = "Net Income", x = "Index", y = "Net Income (Billion)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = 1:nrow(train_data), y = employees, group = 1)) + 
+  geom_line() +
+  geom_point() +
+  labs(title = "Number of Employees", x = "Index", y = "Number of Employees") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = 1:nrow(train_data), y = rnd_spending, group = 1)) + 
+  geom_line() +
+  geom_point() +
+  labs(title = "Research & Development Spending", x = "Index", y = "Spending (Billion)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = 1:nrow(train_data), y = stock, group = 1)) + 
+  geom_line() +
+  geom_point() +
+  labs(title = "Stock Price", x = "Index", y = "Price") +
+  theme_minimal()
+
+#plot test data
+ggplot(test_data, aes(x = 1:nrow(test_data), y = revenue, group = 1)) + 
+  geom_line() +
+  geom_point() +
+  labs(title = "Revenue", x = "Index", y = "Net Income (Billion)") +
+  theme_minimal()
+
+
+```
+
+
+```{r}
+#transform train_y and train_x in time series
+
+train_y <- ts(train_y, frequency = 4)
+train_x <- ts(train_x, frequency = 4)
+```
+
+```{r}
+train_x_df <- data.frame(train_x)
+```
+
+```{r}
+
+tslm_rev <- tslm(train_y ~ trend + season + train_x, data = train_x)
 summary(tslm_rev) # ts_employees non è significativa
 
 checkresiduals(tslm_rev)
 vif(tslm_rev)
 ```
 
+
 ```{r}
-# Calcolare la matrice di correlazione
-cor_matrix <- cor(data.frame(ts_employees, ts_net_income, ts_spending, ts_revenue, ts_stock))
-print(cor_matrix)
+fit <- fitted(tslm_rev)
+fore <- forecast(tslm_rev, newdata = test_x)
+
+# PLOT THE FORECAST AND THE ACTUAL VALUES TOGETHER FOR COMPARISON 
+plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(0, 10))
+lines(ts_revenue, col = "black")
+lines(fit, col = "red")
+legend("topleft", legend = c("Forecast", "Actual"), col = c("blue", "red"), lty = 1)
+
 ```
 
+
+
 ```{r}
-# Assicurati che tutte le colonne utilizzate per la correlazione siano numeriche
-# Supponiamo che i dati siano nelle colonne 2 delle rispettive tabelle (adatta l'indice di colonna se necessario)
-data_combined <- data.frame(
-  revenue = revenue_by_quarter_2$Revenue,
-  net_income = quarterly_net_income$Value,
-  employees = number_of_employees_2$Valore,
-  rnd_spending = rd_spending$Valore,
-  stock = nvda_stock$Price
-)
 
 # Calcolo della matrice di correlazione
-correlation_matrix <- cor(data_combined, use = "complete.obs")
+correlation_matrix <- cor(train_x, use = "complete.obs")
 
 # Visualizzazione della matrice di correlazione
 print(correlation_matrix)
@@ -471,24 +583,11 @@ print(correlation_matrix)
 library(corrplot)
 corrplot(correlation_matrix, method = "circle")
 
-# Differenziazione delle serie temporali
-diff_revenue <- diff(ts_revenue)
-diff_net_income <- diff(ts_net_income)
-diff_employees <- diff(ts_employees)
-diff_spending <- diff(ts_spending)
-diff_stock <- diff(ts_stock)
-
 # Creazione del dataframe con le serie differenziate
-data_combined_diff <- data.frame(
-  diff_revenue = as.numeric(diff_revenue),
-  diff_net_income = as.numeric(diff_net_income),
-  diff_employees = as.numeric(diff_employees),
-  diff_spending = as.numeric(diff_spending),
-  diff_stock = as.numeric(diff_stock)
-)
+train_x_diff <- diff(train_x)
 
 # Calcolo della matrice di correlazione
-correlation_matrix_diff <- cor(data_combined_diff, use = "complete.obs")
+correlation_matrix_diff <- cor(train_x_diff, use = "complete.obs")
 
 # Visualizzazione della matrice di correlazione
 print(correlation_matrix_diff)
@@ -500,13 +599,26 @@ corrplot(correlation_matrix_diff, method = "circle")
 
 
 ```{r}
-# Per problemi di collinearità e perchè ts_employees non è rilevante per il nostro modello vado a rimuovere e riprovo
-tslm_rev <- tslm(diff_revenue ~ trend+season+diff_spending+diff_net_income+diff_stock+diff_employees)
+
+tslm_rev <- tslm(diff(train_y) ~ trend + season + train_x_diff, data = train_x_diff)
 summary(tslm_rev) # ts_employees non è significativa
 
 checkresiduals(tslm_rev)
 vif(tslm_rev)
 ```
+
+```{r}
+fit <- fitted(tslm_rev)
+fore <- forecast(tslm_rev, newdata = test_x)
+
+# PLOT THE FORECAST AND THE ACTUAL VALUES TOGETHER FOR COMPARISON 
+plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(-5, 10))
+lines(ts_revenue, col = "black")
+lines(fit, col = "red")
+legend("topleft", legend = c("Forecast", "Actual"), col = c("blue", "red"), lty = 1)
+
+```
+
 
 ```{r}
 # Funzione per calcolare gli errori
@@ -521,7 +633,7 @@ calculate_errors <- function(actual, forecast) {
 
 # Calcolo delle previsioni
 forecast_values <- fitted(tslm_rev)
-actual_values <- ts_revenue
+actual_values <- diff_revenue
 
 # Calcolo degli errori
 errors <- calculate_errors(actual_values, forecast_values)
