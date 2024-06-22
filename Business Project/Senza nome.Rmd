@@ -3,6 +3,9 @@ title: "LinearReg"
 output: pdf_document
 date: "2024-05-28"
 ---
+#######################
+### IMPORT PACAKGES ###
+#######################
 
 ```{r}
 library(car)
@@ -16,11 +19,9 @@ library(forecast)
 library(ggplot2)
 ```
 
-```{r}
-
-```
-
-
+####################
+### UPLOAD FILES ###
+####################
 
 ```{r}
 number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/number-of-employees.xlsx")
@@ -42,6 +43,16 @@ number_of_employees_2 <- read_excel("~/Uni/Business/Business Project/Untitled/Bu
 
 ```
 
+
+##########################
+### DATA PREPROCESSING ###
+##########################
+
+
+############################
+### quarterly_net_income ###
+############################
+
 ```{r}
 #plot with ggplot2 quarterly_net_income x from 1 to len df
 #reverse Quarter Value Year
@@ -58,6 +69,9 @@ ggplot(quarterly_net_income, aes(x = 1:nrow(quarterly_net_income), y = Value, gr
   theme_minimal()
 ```
 
+##################
+### nvda_stock ###
+##################
 
 ```{r}
 
@@ -105,10 +119,11 @@ ggplot(quarterly_data, aes(x = paste(Year, Quarter, sep = "-Q"), y = log(Average
 nvda_stock <- nvda_stock %>% select(Year, 'Average_Price', quarter) %>% rename(Price = 'Average_Price')
 ```
 
-
+###################################################
+### print all colnames and types of the columns ###
+###################################################
 
 ```{r}
-#print all colnames and types of the columns
 print(colnames(number_of_employees))
 print(sapply(number_of_employees, class))
 print(nrow(number_of_employees))
@@ -138,6 +153,9 @@ print(sapply(nvda_stock, class))
 print(nrow(nvda_stock))
 ```
 
+#########################
+### UTILITY FUNCTIONS ###
+#########################
 
 ```{r}
 # Normalizzare i dati
@@ -163,7 +181,9 @@ plot_model_forecast <- function(model, data, forecast_horizon) {
 ```{r}
 ```
 
-
+#############################################
+### Print actual values of the dataframes ###
+#############################################
 
 ```{r}
 #print every firsst value of the dataframes (columns 'Date')
@@ -174,7 +194,13 @@ print(head(revenue_by_quarter$quarter, 1))
 print(head(revenue_by_quarter_2$Date, 1))
 print(head(nvda_stock$Year, 1))
 ```
+##########################
+### FIXING DATA LENGTH ###
+##########################
 
+############################
+### revenue_by_quarter_2 ###
+############################
 
 ```{r}
 #fix revenue_by_quarter_2
@@ -196,6 +222,10 @@ revenue_by_quarter_2 <- revenue_by_quarter_2 %>%
 revenue_by_quarter_2 <- revenue_by_quarter_2 %>% select(-Date)
 
 ```
+
+#########################################################
+### rd_spending using spline to transform in quarters ###
+#########################################################
 
 ```{r}
 #fix rd_spending
@@ -254,8 +284,12 @@ ggplot(rd_spending, aes(x = year, y = Valore, group = 1)) +
 
 
 ```
+###################################################################
+### number_of_employees_2 using spline to transform in quarters ###
+###################################################################
+
 ```{r}
-#fix number_of_employees_2
+
 #delete last 2 rows of the dataframe number_of_employees_2
 number_of_employees_2 <- number_of_employees_2[-c((nrow(number_of_employees_2)-1):nrow(number_of_employees_2)),]
 
@@ -316,6 +350,9 @@ ggplot(number_of_employees_2, aes(x = year, y = Valore, group = 1)) +
 
 ```
 
+######################################################################
+### add missing past values to rd_spending using lm natural spline ###
+######################################################################
 
 ```{r}
 # Carica i pacchetti necessari
@@ -381,6 +418,10 @@ ggplot(rd_spending, aes(x = 1:nrow(rd_spending), y = Valore, group = 1)) +
   labs(title = "Research & Development Spending", x = "Index", y = "Spending (Billion)") +
   theme_minimal()
 ```
+############################################
+### print acutal state of the dataframes ###
+############################################
+
 ```{r}
 #print every firsst value of the dataframes (columns 'Date')
 print(head(number_of_employees_2$year, 1))
@@ -409,6 +450,10 @@ print(tail(quarterly_net_income$quarter, 1))
 print(tail(revenue_by_quarter_2$Quarter, 1))
 print(tail(nvda_stock$quarter, 1))
 ```
+###########################################
+### Fix final lengths of the dataframes ###
+###########################################
+
 ```{r}
 # delete the first 4 rows and the last 5 rows of the dataframe number_of_employees_2
 number_of_employees_2 <- number_of_employees_2[-c(1:4, (nrow(number_of_employees_2)-4):nrow(number_of_employees_2)),]
@@ -432,6 +477,9 @@ nvda_stock <- nvda_stock[-c(1:4, (nrow(nvda_stock)-5):nrow(nvda_stock)),]
 number_of_employees_2 <- number_of_employees_2 %>% mutate(Valore = round(Valore, 0))
 ```
 
+#################################
+### TIMESERIES transformation ###
+#################################
 
 ```{r}
 ts_employees <- ts(number_of_employees_2$Valore, frequency = 4)
@@ -464,6 +512,10 @@ ggplot(data_combined, aes(x = 1:nrow(data_combined), y = net_income, group = 1))
   labs(title = "Revenue", x = "Index", y = "Revenue (Billion)") +
   theme_minimal()
 ```
+########################
+### Split TRAIN TEST ###
+########################
+
 ```{r}
 #split the data into training and test set
 
@@ -534,7 +586,9 @@ ggplot(test_data, aes(x = 1:nrow(test_data), y = revenue, group = 1)) +
 
 
 ```
-
+##############
+### MODELS ###
+##############
 
 ```{r}
 #transform train_y and train_x in time series
@@ -546,6 +600,10 @@ train_x <- ts(train_x, frequency = 4)
 ```{r}
 train_x_df <- data.frame(train_x)
 ```
+
+############
+### TSLM ###
+############
 
 ```{r}
 
@@ -641,6 +699,8 @@ errors <- calculate_errors(actual_values, forecast_values)
 # Visualizzazione dei risultati
 print(errors)
 ```
+
+
 
 ```{r}
 # Libreria necessaria
