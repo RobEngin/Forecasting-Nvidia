@@ -3,25 +3,22 @@ title: "LinearReg"
 output: pdf_document
 date: "2024-05-28"
 ---
-#######################
-### IMPORT PACAKGES ###
-#######################
+                      #######################
+                      ### IMPORT PACAKGES ###
+                      #######################
 
 ```{r}
 library(car)
-install.packages("readxl")
 library(readxl)
-install.packages("dplyr")
 library(dplyr)
-install.packages("lubridate")
 library(lubridate)
 library(forecast)
 library(ggplot2)
 ```
 
-####################
-### UPLOAD FILES ###
-####################
+                        ####################
+                        ### UPLOAD FILES ###
+                        ####################
 
 ```{r}
 number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/number-of-employees.xlsx")
@@ -44,14 +41,14 @@ number_of_employees_2 <- read_excel("~/Uni/Business/Business Project/Untitled/Bu
 ```
 
 
-##########################
-### DATA PREPROCESSING ###
-##########################
-
-
-############################
-### quarterly_net_income ###
-############################
+                       ##########################
+                       ### DATA PREPROCESSING ###
+                       ##########################
+                      
+                      
+                      ############################
+                      ### quarterly_net_income ###
+                      ############################
 
 ```{r}
 #plot with ggplot2 quarterly_net_income x from 1 to len df
@@ -69,9 +66,9 @@ ggplot(quarterly_net_income, aes(x = 1:nrow(quarterly_net_income), y = Value, gr
   theme_minimal()
 ```
 
-##################
-### nvda_stock ###
-##################
+                              ##################
+                              ### nvda_stock ###
+                              ##################
 
 ```{r}
 
@@ -119,9 +116,9 @@ ggplot(quarterly_data, aes(x = paste(Year, Quarter, sep = "-Q"), y = log(Average
 nvda_stock <- nvda_stock %>% select(Year, 'Average_Price', quarter) %>% rename(Price = 'Average_Price')
 ```
 
-###################################################
-### print all colnames and types of the columns ###
-###################################################
+              ###################################################
+              ### print all colnames and types of the columns ###
+              ###################################################
 
 ```{r}
 print(colnames(number_of_employees))
@@ -153,9 +150,9 @@ print(sapply(nvda_stock, class))
 print(nrow(nvda_stock))
 ```
 
-#########################
-### UTILITY FUNCTIONS ###
-#########################
+                          #########################
+                          ### UTILITY FUNCTIONS ###
+                          #########################
 
 ```{r}
 # Normalizzare i dati
@@ -177,13 +174,9 @@ plot_model_forecast <- function(model, data, forecast_horizon) {
 }
 ```
 
-
-```{r}
-```
-
-#############################################
-### Print actual values of the dataframes ###
-#############################################
+                #############################################
+                ### Print actual values of the dataframes ###
+                #############################################
 
 ```{r}
 #print every firsst value of the dataframes (columns 'Date')
@@ -194,13 +187,13 @@ print(head(revenue_by_quarter$quarter, 1))
 print(head(revenue_by_quarter_2$Date, 1))
 print(head(nvda_stock$Year, 1))
 ```
-##########################
-### FIXING DATA LENGTH ###
-##########################
-
-############################
-### revenue_by_quarter_2 ###
-############################
+                             ##########################
+                             ### FIXING DATA LENGTH ###
+                             ##########################
+                            
+                            ############################
+                            ### revenue_by_quarter_2 ###
+                            ############################
 
 ```{r}
 #fix revenue_by_quarter_2
@@ -223,9 +216,10 @@ revenue_by_quarter_2 <- revenue_by_quarter_2 %>% select(-Date)
 
 ```
 
-#########################################################
-### rd_spending using spline to transform in quarters ###
-#########################################################
+
+          #########################################################
+          ### rd_spending using spline to transform in quarters ###
+          #########################################################
 
 ```{r}
 #fix rd_spending
@@ -284,9 +278,9 @@ ggplot(rd_spending, aes(x = year, y = Valore, group = 1)) +
 
 
 ```
-###################################################################
-### number_of_employees_2 using spline to transform in quarters ###
-###################################################################
+      ###################################################################
+      ### number_of_employees_2 using spline to transform in quarters ###
+      ###################################################################
 
 ```{r}
 
@@ -350,9 +344,9 @@ ggplot(number_of_employees_2, aes(x = year, y = Valore, group = 1)) +
 
 ```
 
-######################################################################
-### add missing past values to rd_spending using lm natural spline ###
-######################################################################
+      ######################################################################
+      ### add missing past values to rd_spending using lm natural spline ###
+      ######################################################################
 
 ```{r}
 # Carica i pacchetti necessari
@@ -418,9 +412,9 @@ ggplot(rd_spending, aes(x = 1:nrow(rd_spending), y = Valore, group = 1)) +
   labs(title = "Research & Development Spending", x = "Index", y = "Spending (Billion)") +
   theme_minimal()
 ```
-############################################
-### print acutal state of the dataframes ###
-############################################
+                  ############################################
+                  ### print acutal state of the dataframes ###
+                  ############################################
 
 ```{r}
 #print every firsst value of the dataframes (columns 'Date')
@@ -450,9 +444,9 @@ print(tail(quarterly_net_income$quarter, 1))
 print(tail(revenue_by_quarter_2$Quarter, 1))
 print(tail(nvda_stock$quarter, 1))
 ```
-###########################################
-### Fix final lengths of the dataframes ###
-###########################################
+                ###########################################
+                ### Fix final lengths of the dataframes ###
+                ###########################################
 
 ```{r}
 # delete the first 4 rows and the last 5 rows of the dataframe number_of_employees_2
@@ -477,9 +471,20 @@ nvda_stock <- nvda_stock[-c(1:4, (nrow(nvda_stock)-5):nrow(nvda_stock)),]
 number_of_employees_2 <- number_of_employees_2 %>% mutate(Valore = round(Valore, 0))
 ```
 
-#################################
-### TIMESERIES transformation ###
-#################################
+```{r}
+# Rimuovi le ultime 10 righe di number_of_employees_2, le ultime 10 righe di rd_spending, le ultime 10 righe di quarterly_net_income, le ultime 10 righe di revenue_by_quarter_2 e le ultime 10 righe di nvda_stock
+number_of_employees_2 <- number_of_employees_2[-c((nrow(number_of_employees_2)-9):nrow(number_of_employees_2)),]
+rd_spending <- rd_spending[-c((nrow(rd_spending)-9):nrow(rd_spending)),]
+quarterly_net_income <- quarterly_net_income[-c((nrow(quarterly_net_income)-9):nrow(quarterly_net_income)),]
+revenue_by_quarter_2 <- revenue_by_quarter_2[-c((nrow(revenue_by_quarter_2)-9):nrow(revenue_by_quarter_2)),]
+nvda_stock <- nvda_stock[-c((nrow(nvda_stock)-9):nrow(nvda_stock)),]
+
+```
+
+
+                  #################################
+                  ### TIMESERIES transformation ###
+                  #################################
 
 ```{r}
 ts_employees <- ts(number_of_employees_2$Valore, frequency = 4)
@@ -489,6 +494,27 @@ ts_revenue <- ts(revenue_by_quarter_2$Revenue, frequency = 4)
 ts_stock <- ts(nvda_stock$Price, frequency = 4)
 
 ```
+
+                          ############################
+                          ### STATIONARITY TESTING ###
+                          ############################
+
+
+```{r}
+acf(diff(ts_employees))
+acf(diff(ts_net_income))
+acf(diff(ts_spending))
+acf(diff(ts_revenue))
+acf(diff(ts_stock))
+
+#plot diff of the timeseries ts_revenue
+ggplot(data.frame(Revenue = diff(ts_revenue)), aes(x = 1:nrow(data.frame(Revenue = diff(ts_revenue))), y = Revenue, group = 1)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Revenue", x = "Index", y = "Revenue (Billion)") +
+  theme_minimal()
+```
+
 
 ```{r}
 #aggretgate all timesereis in a dataframe
@@ -512,9 +538,9 @@ ggplot(data_combined, aes(x = 1:nrow(data_combined), y = net_income, group = 1))
   labs(title = "Revenue", x = "Index", y = "Revenue (Billion)") +
   theme_minimal()
 ```
-########################
-### Split TRAIN TEST ###
-########################
+                            ########################
+                            ### Split TRAIN TEST ###
+                            ########################
 
 ```{r}
 #split the data into training and test set
@@ -586,9 +612,9 @@ ggplot(test_data, aes(x = 1:nrow(test_data), y = revenue, group = 1)) +
 
 
 ```
-##############
-### MODELS ###
-##############
+                             ##############
+                             ### MODELS ###
+                             ##############
 
 ```{r}
 #transform train_y and train_x in time series
@@ -596,21 +622,18 @@ ggplot(test_data, aes(x = 1:nrow(test_data), y = revenue, group = 1)) +
 train_y <- ts(train_y, frequency = 4)
 train_x <- ts(train_x, frequency = 4)
 ```
-
-```{r}
-train_x_df <- data.frame(train_x)
-```
-
-############
-### TSLM ###
-############
+                              
+                              ############
+                              ### TSLM ###
+                              ############
 
 ```{r}
 
-tslm_rev <- tslm(train_y ~ trend + net_income + rnd_spending + stock, data = train_x)
+tslm_rev <- tslm(train_y ~ trend + stock, data = train_x)
 summary(tslm_rev) # ts_employees non è significativa
 
 checkresiduals(tslm_rev)
+vif(tslm_rev)
 
 # Calcolo dei residui del modello
 residuals <- residuals(tslm_rev)
@@ -644,9 +667,27 @@ lines(ts_revenue, col = "black")
 lines(fit, col = "red")
 legend("topleft", legend = c("Forecast", "Actual"), col = c("blue", "red"), lty = 1)
 
+# Calcolo dei residui del modello
+residuals <- test_y - fore$mean
+
+# Calcolo delle metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / test_y) * 100)
+mape <- mean(abs(residuals / test_y) * 100)
+
+# Stampa delle metriche
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
+
 ```
-
-
+                          ##########################
+                          ### CORRELATION MATRIX ###
+                          ##########################
 
 ```{r}
 
@@ -673,11 +714,13 @@ print(correlation_matrix_diff)
 corrplot(correlation_matrix_diff, method = "circle")
 
 ```
-
+                          ############################
+                          ### DIFFERENTIATED TSLM ####
+                          ############################
 
 ```{r}
 
-tslm_rev <- tslm(diff(train_y) ~ net_income + rnd_spending , data = train_x_diff)
+tslm_rev <- tslm(diff(train_y) ~  net_income , data = train_x_diff)
 summary(tslm_rev) # ts_employees non è significativa
 
 checkresiduals(tslm_rev)
@@ -702,192 +745,269 @@ cat("Mean Absolute Error (MAE):", mae, "\n")
 cat("Mean Percentage Error (MPE):", mpe, "%\n")
 cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
+```{r}
+test_x_diff <- data.frame(
+  net_income = diff(test_x$net_income),
+  employees = diff(test_x$employees),
+  rnd_spending = diff(test_x$rnd_spending),
+  stock = diff(test_x$stock)
+)
+```
 
 ```{r}
-test_x_diff <- diff(test_x)
-
 fit <- fitted(tslm_rev)
 fore <- forecast(tslm_rev, newdata = test_x_diff)
 
 # PLOT THE FORECAST AND THE ACTUAL VALUES TOGETHER FOR COMPARISON 
-plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(-2, 5))
+plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(-2, 2))
 lines(diff(ts_revenue), col = "black")
 lines(fit, col = "red")
 legend("topleft", legend = c("Forecast", "Actual"), col = c("blue", "red"), lty = 1)
 
+# Calcolo dei residui del modello
+residuals <- diff(test_y) - fore$mean
+
+# Calcolo delle metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / diff(test_y)) * 100)
+mape <- mean(abs(residuals / diff(test_y)) * 100)
+
+# Stampa delle metriche
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
+
 ```
 
+                  ####################################
+                  ### TSLM with ARIMA on RESIDUALS ###
+                  ####################################
 
 ```{r}
-# Funzione per calcolare gli errori
-calculate_errors <- function(actual, forecast) {
-  ME <- mean(actual - forecast) # Mean Error
-  RMSE <- sqrt(mean((actual - forecast)^2)) # Root Mean Squared Error
-  MAE <- mean(abs(actual - forecast)) # Mean Absolute Error
-  MPE <- mean((actual - forecast) / actual) * 100 # Mean Percentage Error
-  MAPE <- mean(abs((actual - forecast) / actual)) * 100 # Mean Absolute Percentage Error
-  return(list(ME = ME, RMSE = RMSE, MAE = MAE, MPE = MPE, MAPE = MAPE))
+library(forecast)
+library(tseries)
+
+# Adattamento del modello tslm
+tslm_rev <- tslm(train_y ~ trend + net_income + rnd_spending + stock, data = train_x)
+summary(tslm_rev)
+checkresiduals(tslm_rev)
+
+# Calcolo delle previsioni del modello tslm
+fit <- fitted(tslm_rev)
+fore <- forecast(tslm_rev, newdata = test_x)
+
+# Calcolo dei residui del modello tslm
+residuals <- residuals(tslm_rev)
+
+# Adattamento del modello ARIMA ai residui
+arima_residuals <- auto.arima(residuals)
+
+# Previsione dei residui con ARIMA
+forecast_residuals <- forecast(arima_residuals, h = length(test_y))
+
+# Applicazione del smoothing esponenziale ai residui previsti
+alpha <- 0.5 # Parametro di smoothing esponenziale
+ewma <- function(x, alpha) {
+  s <- numeric(length(x))
+  s[1] <- x[1]
+  for (i in 2:length(x)) {
+    s[i] <- alpha * x[i] + (1 - alpha) * s[i - 1]
+  }
+  return(s)
 }
 
-# Calcolo delle previsioni
-forecast_values <- fitted(tslm_rev)
-actual_values <- diff_revenue
+# Applicazione del smoothing esponenziale ai residui previsti
+smoothed_residuals <- ewma(forecast_residuals$mean, alpha)
+
+# Previsione finale aggiustata
+forecast_adjusted <- fore$mean + smoothed_residuals
 
 # Visualizzazione dei risultati
-print(errors)
+plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", xlim = c(20,25) , ylim = c(2, 10))
+lines(ts_revenue, col = "black")
+#lines(fore$mean, col = "blue", type = "o")
+lines(forecast_adjusted, col = "red", type = "o")
+#legend("topleft", legend = c("Actual", "Forecast", "Adjusted Forecast"), col = c("black", "blue", "red"), lty = 1, pch = 1)
+
+# Calcolo dei residui del modello
+residuals <- test_y - forecast_adjusted
+
+# Calcolo delle metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / test_y) * 100)
+mape <- mean(abs(residuals / test_y) * 100)
+
+# Stampa delle metriche
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
-
-
+                                #############
+                                ### ARIMA ###
+                                #############
 
 ```{r}
-# Libreria necessaria
-library(glmnet)
-
-# Combina tutte le variabili in un unico dataframe
-data_combined <- data.frame(
-  revenue = as.numeric(ts_revenue),
-  trend = 1:length(ts_revenue),
-  season = as.factor(cycle(ts_revenue)),
-  spending = as.numeric(ts_spending),
-  net_income = as.numeric(ts_net_income),
-  employees = as.numeric(ts_employees)
-)
-
-# Preparazione dei dati
-X <- model.matrix(ts_revenue ~ ts_spending + ts_net_income, data = data_combined)
-y <- ts_revenue
-
-
-
-# Ridge Regression
-ridge_model <- cv.glmnet(X, y, alpha = 0)  # alpha=0 per Ridge
-
-# Coefficienti del modello
-coef(ridge_model, s = "lambda.min")
-
-# Previsioni con Ridge Regression
-ridge_predictions <- predict(ridge_model, s = "lambda.min", newx = X)
-
-# Calcolo degli errori per Ridge Regression
-ridge_errors <- calculate_errors(y, ridge_predictions)
-print(ridge_errors)
-
-```
-
-
-```{r}
-# Caricare i pacchetti necessari
-library(ggplot2)
 library(forecast)
-library(dplyr)
 
-# Creare un data frame con i valori reali e quelli predetti
-data <- data.frame(
-  Date = time(ts_revenue),
-  Revenue = as.numeric(ts_revenue),
-  Fitted = fitted(tslm_rev)
-)
+# Supponiamo che train_y e test_y siano le tue serie temporali di addestramento e di test
+# E che ts_revenue sia la tua serie temporale completa
 
-# Creare il grafico con ggplot2
-ggplot(data, aes(x = as.Date(Date))) +  # Conversione della data
-  geom_point(aes(y = Revenue)) +  # Valori reali
-  geom_line(aes(y = Fitted), color = "red") +  # Valori predetti
-  ggtitle("Real Revenue vs Fitted Values with TSLM") +
-  xlab("Date") +
-  ylab("Revenue")
+# Adattamento del modello ARIMA sui dati di addestramento
+arima_model <- auto.arima(train_y)
+
+# Sommario del modello ARIMA
+summary(arima_model)
+checkresiduals(arima_model)
+# Previsione del modello ARIMA sui dati di test
+forecast_arima <- forecast(arima_model, h = length(test_y))
+
+# Visualizzazione delle previsioni insieme ai dati reali
+plot(forecast_arima, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", xlim = c(0, 25), ylim = c(min(c(train_y, test_y)), max(c(train_y, test_y))))
+lines(ts_revenue, col = "black")
+lines(forecast_arima$mean, col = "blue", type = "o")
+legend("topleft", legend = c("Actual", "Forecast"), col = c("black", "blue"), lty = 1, pch = 1)
+
+# Calcolo dei residui del modello ARIMA sui dati di test
+residuals <- test_y - forecast_arima$mean
 ```
+                              ##############
+                              ### ARIMAX ###
+                              ##############
 
 ```{r}
-library(glmnet)
+library(forecast)
 
-# Creare la matrice di design per la regressione Lasso
-X <- model.matrix(ts_revenue ~ ts_employees + ts_net_income + ts_spending)[, -1]
-y <- as.vector(ts_revenue)
+# Converti train_x e test_x in matrici numeriche
+train_x_matrix <- as.matrix(train_x)
+test_x_matrix <- as.matrix(test_x)
 
-# Eseguire la regressione Lasso con cross-validazione
-cv_lasso <- cv.glmnet(X, y, alpha = 1)
-lasso_model <- glmnet(X, y, alpha = 1)
+# Adattamento del modello ARIMAX sui dati di addestramento
+arimax_model <- auto.arima(train_y, xreg = train_x_matrix)
 
-# Tracciare il grafico dei coefficienti
-plot(lasso_model, xvar = "lambda", label = TRUE)
+# Sommario del modello ARIMAX
+summary(arimax_model)
+checkresiduals(arimax_model)
 
-# Calcolare le previsioni della Lasso Regression
-lasso_predictions <- predict(lasso_model, s = cv_lasso$lambda.min, newx = X)
+# Previsione del modello ARIMAX sui dati di test
+forecast_arimax <- forecast(arimax_model, xreg = test_x_matrix, h = nrow(test_x_matrix))
 
-# Calcolare i residui
-lasso_residuals <- y - lasso_predictions
+# Visualizzazione delle previsioni insieme ai dati reali
+plot(forecast_arimax, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", xlim = c(0,25), ylim = c(0, 9))
+lines(ts_revenue, col = "black")
+lines(forecast_arimax$mean, col = "blue", type = "o")
+legend("topleft", legend = c("Actual", "Forecast"), col = c("black", "blue"), lty = 1, pch = 1)
 
-# Convertire i residui in un oggetto ts
-ts_lasso_residuals <- ts(lasso_residuals, frequency = 4)
+# Calcola i residui del modello ARIMAX sui dati di test
+residuals <- test_y - forecast_arimax$mean
 
-# Utilizzare checkresiduals per analizzare i residui
-checkresiduals(ts_lasso_residuals)
-
-# Creare un data frame con i valori reali e quelli predetti
-data <- data.frame(
-  Date = as.Date(time(ts_revenue), origin = "1970-01-01"),
-  Revenue = as.numeric(ts_revenue),
-  Lasso_Fitted = as.numeric(lasso_predictions),
-  Residuals = as.numeric(lasso_residuals)
-)
-
-# Creare il grafico con ggplot2
-ggplot(data, aes(x = Date)) +
-  geom_point(aes(y = Revenue), color = "blue") +  # Valori reali
-  geom_line(aes(y = Lasso_Fitted), color = "red") +  # Valori predetti dalla Lasso
-  ggtitle("Real Revenue vs Fitted Values with Lasso Regression") +
-  xlab("Date") +
-  ylab("Revenue") +
-  theme_minimal()
+# Calcola le metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / test_y) * 100)
+mape <- mean(abs(residuals / test_y) * 100)
+  
+# Stampa le metriche di errore
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 
 ```
+                          #############################
+                          ### ARIMAX DIFFERENCIATED ###
+                          #############################
 
 ```{r}
-# Creare una matrice con le variabili esogene
-xreg <- cbind(ts_employees, ts_net_income, ts_spending)
+# Converti train_x e test_x in matrici numeriche
+train_x_matrix <- as.matrix(train_x_diff)
+test_x_matrix <- as.matrix(test_x_diff)
 
-# Utilizzare auto.arima per trovare il miglior modello ARIMA
-best_arima_model <- auto.arima(ts_revenue, xreg=xreg)
-summary(best_arima_model)
+# Adattamento del modello ARIMAX sui dati di addestramento
+arimax_model <- auto.arima(diff(train_y), xreg = train_x_matrix)
 
-residuals_arima <- residuals(best_arima_model)
+# Sommario del modello ARIMAX
+summary(arimax_model)
+checkresiduals(arimax_model)
 
-# Visualizzare i residui del modello
-checkresiduals(best_arima_model)
+# Previsione del modello ARIMAX sui dati di test
+forecast_arimax <- forecast(arimax_model, xreg = test_x_matrix, h = nrow(test_x_matrix))
 
-# Prevedere i prossimi 8 trimestri
-forecast_horizon <- 4
-forecast_revenue <- forecast(best_arima_model, xreg=xreg, h = forecast_horizon)
+# Visualizzazione delle previsioni insieme ai dati reali
+plot(forecast_arimax, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", xlim = c(0,25), ylim = c(-2.5, 2))
+lines(diff(ts_revenue), col = "black")
+lines(forecast_arimax$mean, col = "blue", type = "o")
+legend("topleft", legend = c("Actual", "Forecast"), col = c("black", "blue"), lty = 1, pch = 1)
 
-# Visualizzare le previsioni
-autoplot(forecast_revenue) +
-  labs(title = "Revenue Forecast with ARIMA", x = "Date", y = "Revenue (Billion)") +
-  autolayer(fitted(best_arima_model), series = "Fitted", PI = FALSE)
+# Calcola i residui del modello ARIMAX sui dati di test
+residuals <- diff(test_y) - forecast_arimax$mean
+
+# Calcola le metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / diff(test_y)) * 100)
+mape <- mean(abs(residuals / diff(test_y)) * 100)
+  
+# Stampa le metriche di errore
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
+                                  ################
+                                  ### S-ARIMAX ###
+                                  ################
 
 ```{r}
-# Creare una matrice con le variabili esogene
-xreg <- cbind(ts_employees, ts_net_income, ts_spending)
+# Converti train_x e test_x in matrici numeriche
+train_x_matrix <- as.matrix(train_x)
+test_x_matrix <- as.matrix(test_x)
 
-# Utilizzare auto.arima per trovare il miglior modello ARIMA
-best_arima_model <- auto.arima(ts_revenue, xreg = xreg)
-summary(best_arima_model)
+# Adattamento del modello SARIMAX sui dati di addestramento
+sarimax_model <- Arima(train_y, xreg = train_x_matrix, order = c(4,0,2), seasonal = c(1,1,1),)
 
-# Visualizzare i residui del modello
-checkresiduals(best_arima_model)
+# Sommario del modello SARIMAX
+summary(sarimax_model)
+checkresiduals(sarimax_model)
 
-# Prevedere i prossimi 4 trimestri (1 anno)
-forecast_horizon <- 8
-# Dato che stiamo prevedendo solo 4 trimestri, utilizziamo le stesse variabili esogene
-xreg_future <- tail(xreg, forecast_horizon)
+# Previsione del modello SARIMAX sui dati di test
+forecast_sarimax <- forecast(sarimax_model, xreg = test_x_matrix, h = length(test_y))
 
-# Prevedere i prossimi 4 trimestri
-forecast_revenue <- forecast(best_arima_model, xreg = xreg_future, h = forecast_horizon)
+# Visualizzazione delle previsioni insieme ai dati reali
+plot(forecast_sarimax, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(0, 10))
+lines(ts_revenue, col = "black")
+lines(forecast_sarimax$mean, col = "blue", type = "o")
+legend("topleft", legend = c("Actual", "Forecast"), col = c("black", "blue"), lty = 1, pch = 1)
 
-# Visualizzare le previsioni
-autoplot(forecast_revenue) +
-  labs(title = "Revenue Forecast with ARIMA", x = "Date", y = "Revenue (Billion)") +
-  autolayer(fitted(best_arima_model), series = "Fitted", PI = FALSE)
+# Calcola i residui del modello SARIMAX sui dati di test
+residuals <- test_y - forecast_sarimax$mean
+
+# Calcola le metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / test_y) * 100)
+mape <- mean(abs(residuals / test_y) * 100)
+
+# Stampa le metriche di errore
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
+
+
 
 
