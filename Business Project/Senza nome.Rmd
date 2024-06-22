@@ -607,11 +607,30 @@ train_x_df <- data.frame(train_x)
 
 ```{r}
 
-tslm_rev <- tslm(train_y ~ trend + season + train_x, data = train_x)
+tslm_rev <- tslm(train_y ~ trend + net_income + rnd_spending + stock, data = train_x)
 summary(tslm_rev) # ts_employees non è significativa
 
 checkresiduals(tslm_rev)
-vif(tslm_rev)
+
+# Calcolo dei residui del modello
+residuals <- residuals(tslm_rev)
+
+# Calcolo delle previsioni del modello
+predictions <- fitted(tslm_rev)
+
+# Calcolo delle metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / train_y) * 100)
+mape <- mean(abs(residuals / train_y) * 100)
+
+# Stampa delle metriche
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
 
 
@@ -658,20 +677,41 @@ corrplot(correlation_matrix_diff, method = "circle")
 
 ```{r}
 
-tslm_rev <- tslm(diff(train_y) ~ trend + season + train_x_diff, data = train_x_diff)
+tslm_rev <- tslm(diff(train_y) ~ net_income + rnd_spending , data = train_x_diff)
 summary(tslm_rev) # ts_employees non è significativa
 
 checkresiduals(tslm_rev)
-vif(tslm_rev)
+
+# Calcolo dei residui del modello
+residuals <- residuals(tslm_rev)
+
+# Calcolo delle previsioni del modello
+predictions <- fitted(tslm_rev)
+
+# Calcolo delle metriche di errore
+me <- mean(residuals)
+rmse <- sqrt(mean(residuals^2))
+mae <- mean(abs(residuals))
+mpe <- mean((residuals / train_y) * 100)
+mape <- mean(abs(residuals / train_y) * 100)
+
+# Stampa delle metriche
+cat("Mean Error (ME):", me, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Percentage Error (MPE):", mpe, "%\n")
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
 
 ```{r}
+test_x_diff <- diff(test_x)
+
 fit <- fitted(tslm_rev)
-fore <- forecast(tslm_rev, newdata = test_x)
+fore <- forecast(tslm_rev, newdata = test_x_diff)
 
 # PLOT THE FORECAST AND THE ACTUAL VALUES TOGETHER FOR COMPARISON 
-plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(-5, 10))
-lines(ts_revenue, col = "black")
+plot(fore, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", ylim = c(-2, 5))
+lines(diff(ts_revenue), col = "black")
 lines(fit, col = "red")
 legend("topleft", legend = c("Forecast", "Actual"), col = c("blue", "red"), lty = 1)
 
@@ -692,9 +732,6 @@ calculate_errors <- function(actual, forecast) {
 # Calcolo delle previsioni
 forecast_values <- fitted(tslm_rev)
 actual_values <- diff_revenue
-
-# Calcolo degli errori
-errors <- calculate_errors(actual_values, forecast_values)
 
 # Visualizzazione dei risultati
 print(errors)
