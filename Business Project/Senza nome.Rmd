@@ -557,7 +557,7 @@ ggplot(data_combined, aes(x = 1:nrow(data_combined), y = net_income, group = 1))
 ```{r}
 #split the data into training and test set
 
-train_size <- 0.87
+train_size <- 0.78
 train_index <- round(nrow(data_combined) * train_size)
 
 train_data <- data_combined[1:train_index, ]
@@ -677,7 +677,6 @@ cat("Mean Percentage Error (MPE):", mpe, "%\n")
 cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
 
-
 ```{r}
 fit <- fitted(tslm_rev)
 fore <- forecast(tslm_rev, newdata = test_x)
@@ -706,6 +705,138 @@ cat("Mean Percentage Error (MPE):", mpe, "%\n")
 cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 
 ```
+
+                              #############
+                              ### LASSO ###
+                              #############
+                              
+```{r}
+#install.packages("glmnet")
+library(glmnet)
+
+x_train_matrix <- as.matrix(train_x)
+y_train_vector <- as.numeric(train_y)
+x_test_matrix <- as.matrix(test_x)
+y_test_vector <- as.numeric(test_y)
+
+lasso_model <- cv.glmnet(x_train_matrix, y_train_vector, alpha = 1, family = "gaussian")
+summary(lasso_model)
+
+
+# Visualizzare il modello
+plot(lasso_model)
+print(lasso_model)
+
+best_lambda <- lasso_model$lambda.min
+predictions <- predict(lasso_model, s = best_lambda, newx = x_test_matrix)
+
+# Calcolo delle metriche di performance
+mae <- mean(abs(predictions - y_test_vector))
+rmse <- sqrt(mean((predictions - y_test_vector)^2))
+
+print(paste("MAE:", mae))
+print(paste("RMSE:", rmse))
+
+# Preparare i dati per il plot
+results <- data.frame(
+  Actual = y_test_vector,
+  Predicted = as.numeric(predictions)
+)
+
+# Creare il plot
+ggplot(results, aes(x = Actual, y = Predicted)) +
+  geom_point(color = 'blue', alpha = 0.5) +  # Punti per le previsioni
+  geom_abline(slope = 1, intercept = 0, color = 'red', linetype = 'dashed') +  # Linea ideale
+  labs(title = "Previsioni vs Valori Reali",
+       x = "Valori Reali",
+       y = "Previsioni") +
+  theme_minimal()
+
+#plot pèredicted line vs actual line in tyhe same plot
+ggplot(results, aes(x = 1:nrow(results), y = Actual, group = 1)) +
+  geom_line(color = 'black') +
+  geom_line(aes(y = Predicted), color = 'red') +
+  labs(title = "Actual vs Predicted Revenue", x = "Index", y = "Revenue (Billion)") +
+  theme_minimal()
+
+print('Valori scelti per il modello LASSO: ')
+# Estrarre i coefficienti per il valore di lambda ottimale
+coefficients <- coef(lasso_model, s = best_lambda)
+
+# Visualizzare i coefficienti
+print(coefficients)
+
+# Calcolare i residui
+residuals <- y_test_vector - predictions
+
+residuals_ts <- ts(residuals, frequency = 4)
+print('Residuals LASSO: ')
+# Utilizzare checkresiduals sui residui
+checkresiduals(residuals_ts)
+```
+      
+                                  ###########
+                                  ### GAM ###
+                                  ###########                      
+```{r}
+# Installare e caricare il pacchetto mgcv
+library(mgcv)
+
+# Convertire i dati in dataframe (mgcv richiede dataframe)
+train_data <- data.frame(train_x, train_y = y_train_vector)
+test_data <- data.frame(test_x, test_y = y_test_vector)
+
+# Creare il modello GAM con smoothing e spline
+gam_model <- gam(train_y ~ s(net_income) + s(employees) + s(rnd_spending) + s(stock), data = train_data)
+
+# Sommario del modello
+summary(gam_model)
+
+# Fare previsioni sui dati di test
+predictions <- predict(gam_model, newdata = test_data)
+
+# Calcolo delle metriche di performance
+mae <- mean(abs(predictions - y_test_vector))
+rmse <- sqrt(mean((predictions - y_test_vector)^2))
+
+print(paste("MAE:", mae))
+print(paste("RMSE:", rmse))
+
+# Preparare i dati per il plot
+results <- data.frame(
+  Actual = y_test_vector,
+  Predicted = predictions
+)
+
+# Creare il plot delle previsioni vs valori reali
+library(ggplot2)
+ggplot(results, aes(x = Actual, y = Predicted)) +
+  geom_point(color = 'blue', alpha = 0.5) +  # Punti per le previsioni
+  geom_abline(slope = 1, intercept = 0, color = 'red', linetype = 'dashed') +  # Linea ideale
+  labs(title = "Previsioni vs Valori Reali",
+       x = "Valori Reali",
+       y = "Previsioni") +
+  theme_minimal()
+
+# Plot delle linee delle previsioni vs valori reali
+ggplot(results, aes(x = 1:nrow(results), y = Actual, group = 1)) +
+  geom_line(color = 'black') +
+  geom_line(aes(y = Predicted), color = 'red') +
+  labs(title = "Actual vs Predicted Revenue", x = "Index", y = "Revenue (Billion)") +
+  theme_minimal()
+
+# Calcolare i residui
+residuals <- y_test_vector - predictions
+
+# Convertire i residui in un oggetto di classe ts (serie temporale)
+residuals_ts <- ts(residuals, frequency = 4)
+
+# Utilizzare checkresiduals sui residui
+print('Residuals GAM: ')
+checkresiduals(residuals_ts)
+```
+
+
                           ##########################
                           ### CORRELATION MATRIX ###
                           ##########################
@@ -735,6 +866,7 @@ print(correlation_matrix_diff)
 corrplot(correlation_matrix_diff, method = "circle")
 
 ```
+
                           ############################
                           ### DIFFERENTIATED TSLM ####
                           ############################
@@ -766,6 +898,7 @@ cat("Mean Absolute Error (MAE):", mae, "\n")
 cat("Mean Percentage Error (MPE):", mpe, "%\n")
 cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
+
 ```{r}
 test_x_diff <- data.frame(
   net_income = diff(test_x$net_income),
@@ -880,72 +1013,29 @@ cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```{r}
 library(forecast)
 
-# Supponiamo che train_y e test_y siano le tue serie temporali di addestramento e di test
-# E che ts_revenue sia la tua serie temporale completa
-
 # Adattamento del modello ARIMA sui dati di addestramento
-arima_model <- auto.arima(train_y)
+arima_model <- auto.arima(diff(train_y))
 
 # Sommario del modello ARIMA
 summary(arima_model)
 checkresiduals(arima_model)
 # Previsione del modello ARIMA sui dati di test
-forecast_arima <- forecast(arima_model, h = length(test_y))
+forecast_diff <- forecast(arima_model, h = length(test_y))$mean
 
-# Visualizzazione delle previsioni insieme ai dati reali
-plot(forecast_arima, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", xlim = c(0, 25), ylim = c(min(c(train_y, test_y)), max(c(train_y, test_y))))
-lines(ts_revenue, col = "black")
-lines(forecast_arima$mean, col = "blue", type = "o")
-legend("topleft", legend = c("Actual", "Forecast"), col = c("black", "blue"), lty = 1, pch = 1)
+# Riporta le previsioni alla scala originale aggiungendo la differenza cumulativa al valore finale della serie di train
+last_value <- tail(train_y, 1)
+forecast_original <- cumsum(c(last_value, forecast_diff))[-1]
+# Calcolare MAPE e MPE
 
-# Calcolo dei residui del modello ARIMA sui dati di test
-residuals <- test_y - forecast_arima$mean
-```
-                              ##############
-                              ### ARIMAX ###
-                              ##############
+mape <- mean(abs((test_y - forecast_original) / test_y)) * 100
+mpe <- mean((test_y - forecast_original) / test_y) * 100
 
-```{r}
-library(forecast)
+print(paste("MAPE:", mape))
+print(paste("MPE:", mpe))
 
-# Converti train_x e test_x in matrici numeriche
-train_x_matrix <- as.matrix(train_x)
-test_x_matrix <- as.matrix(test_x)
-
-# Adattamento del modello ARIMAX sui dati di addestramento
-arimax_model <- auto.arima(train_y, xreg = train_x_matrix)
-
-# Sommario del modello ARIMAX
-summary(arimax_model)
-checkresiduals(arimax_model)
-
-# Previsione del modello ARIMAX sui dati di test
-forecast_arimax <- forecast(arimax_model, xreg = test_x_matrix, h = nrow(test_x_matrix))
-
-# Visualizzazione delle previsioni insieme ai dati reali
-plot(forecast_arimax, main = "Forecast vs Actual Revenue", xlab = "Time", ylab = "Revenue (Billion)", xlim = c(0,25), ylim = c(0, 9))
-lines(ts_revenue, col = "black")
-lines(forecast_arimax$mean, col = "blue", type = "o")
-legend("topleft", legend = c("Actual", "Forecast"), col = c("black", "blue"), lty = 1, pch = 1)
-
-# Calcola i residui del modello ARIMAX sui dati di test
-residuals <- test_y - forecast_arimax$mean
-
-# Calcola le metriche di errore
-me <- mean(residuals)
-rmse <- sqrt(mean(residuals^2))
-mae <- mean(abs(residuals))
-mpe <- mean((residuals / test_y) * 100)
-mape <- mean(abs(residuals / test_y) * 100)
-  
-# Stampa le metriche di errore
-cat("Mean Error (ME):", me, "\n")
-cat("Root Mean Squared Error (RMSE):", rmse, "\n")
-cat("Mean Absolute Error (MAE):", mae, "\n")
-cat("Mean Percentage Error (MPE):", mpe, "%\n")
-cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 
 ```
+
                           #############################
                           ### ARIMAX DIFFERENCIATED ###
                           #############################
@@ -956,7 +1046,7 @@ train_x_matrix <- as.matrix(train_x_diff)
 test_x_matrix <- as.matrix(test_x_diff)
 
 # Adattamento del modello ARIMAX sui dati di addestramento
-arimax_model <- Arima(diff(train_y), order = c(0,0,1), xreg = train_x_matrix)
+arimax_model <- auto.arima(diff(train_y), xreg = train_x_matrix)
 
 # Sommario del modello ARIMAX
 summary(arimax_model)
@@ -998,7 +1088,6 @@ ggplot(df, aes(x = Date)) +
   theme_minimal()
 ```
 
-
 ```{r}
 
 # Visualizzazione delle previsioni insieme ai dati reali
@@ -1034,6 +1123,7 @@ cat("Mean Absolute Error (MAE):", mae, "\n")
 cat("Mean Percentage Error (MPE):", mpe, "%\n")
 cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
 ```
+
                                   ################
                                   ### S-ARIMAX ###
                                   ################
