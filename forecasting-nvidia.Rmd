@@ -21,37 +21,20 @@ library(ggplot2)
                         ####################
 
 ```{r}
-number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/number-of-employees.xlsx")
-number_of_employees_2 <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/NVIDIA_Employees_Data.xlsx")
+number_of_employees <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Data/number-of-employees.xlsx")
+number_of_employees_2 <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Data/NVIDIA_Employees_Data.xlsx")
 
-rd_spending <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/research-development-spending.xlsx")
+rd_spending <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Data/research-development-spending.xlsx")
 
-quarterly_net_income <- read.csv("~/Desktop/Unipd/GitHub/Business-Project/Business Project/net_income_csv.csv")
+quarterly_net_income <- read.csv("~/Desktop/Unipd/GitHub/Business-Project/Data/net_income_csv.csv")
 
-revenue_by_quarter <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/revenue-by-quarter.xlsx")
-revenue_by_quarter_2 <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/New_Data_2.xlsx")
+revenue_by_quarter <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Data/revenue-by-quarter.xlsx")
+revenue_by_quarter_2 <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Data/New_Data_2.xlsx")
 
-revenue_by_segment <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Business Project/revenue-by-segment.xlsx")
+revenue_by_segment <- read_excel("~/Desktop/Unipd/GitHub/Business-Project/Data/revenue-by-segment.xlsx")
 
-nvda_stock <- read.csv("~/Desktop/Unipd/GitHub/Business-Project/Business Project/NVDA.csv")
+nvda_stock <- read.csv("~/Desktop/Unipd/GitHub/Business-Project/Data/NVDA.csv")
 ```
-
-```{r}
-number_of_employees <- read_excel("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/number-of-employees.xlsx")
-number_of_employees_2 <- read_excel("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/NVIDIA_Employees_Data.xlsx")
-
-rd_spending <- read_excel("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/research-development-spending.xlsx")
-
-quarterly_net_income <- read.csv("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/net_income_csv.csv")
-
-revenue_by_quarter <- read_excel("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/revenue-by-quarter.xlsx")
-revenue_by_quarter_2 <- read_excel("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/New_Data_2.xlsx")
-
-revenue_by_segment <- read_excel("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/revenue-by-segment.xlsx")
-
-nvda_stock <- read.csv("~/Uni/Business/Business Project/Untitled/Business-Project/Business Project/NVDA.csv")
-```
-
 
                        ##########################
                        ### DATA PREPROCESSING ###
